@@ -1,0 +1,9 @@
+# Boshqa nom domen bo‘lsa Sitemap qatorini va public/sitemap.xml dagi <loc> ni yangilang.
+# Qidiruv uchun: https://developers.google.com/search/docs/crawling-indexing/robots/introduce-robots-txt
+User-agent: *
+Allow: /
+Disallow: /kirish
+Disallow: /admin
+Disallow: /talaba
+
+Sitemap: https://med-iqtidro.uz/sitemap.xml
