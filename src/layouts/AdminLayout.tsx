@@ -60,6 +60,9 @@ export function AdminLayout() {
         <NavLink to="/admin/elonlar" className={navClass} onClick={() => setSidebarOpen(false)}>
           E&apos;lonlar
         </NavLink>
+        <NavLink to="/admin/talaba-xabar" className={navClass} onClick={() => setSidebarOpen(false)}>
+          Talabaga shaxsiy xabar
+        </NavLink>
         <NavLink to="/admin/xabarlar" className={navClass} onClick={() => setSidebarOpen(false)}>
           Kelgan xabarlar
         </NavLink>

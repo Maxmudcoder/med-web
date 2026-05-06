@@ -83,9 +83,6 @@ export function AnnouncementsPage() {
               E&apos;lonlar
             </span>
           </h1>
-          <p className="mt-4 max-w-2xl text-[var(--color-text-muted)]">
-            Teglar boʻyicha filtrlash, matn bilan qidirish. Sahifa pastida boshqa bo‘limlarga yoʻllanma.
-          </p>
 
           <form onSubmit={onSearch} className="mt-6 flex max-w-xl flex-wrap gap-2">
             <input

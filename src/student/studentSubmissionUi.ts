@@ -24,6 +24,8 @@ export type SubmissionRow = {
   createdAt: string
   note: string | null
   submittedDraft: string | null
+  /** Talaba kiritgan ilmiy rahbar / masʻul oʻqituvchi (ixtiyoriy) */
+  scientificSupervisor: string | null
   filePath: string
   aiAssessment: string | null
   aiSuggestedPoints: number | null
@@ -56,6 +58,66 @@ export function submissionKindUz(kind: string, articleJournalTier?: string | nul
   if (kind === 'EXCELLENCE') return `A'lochi talaba`
   if (kind === 'ACHIEVEMENT') return 'Yutuq (eski)'
   return kind
+}
+
+/** Baholash yuklashidagi 10 taʼsir yoʻnalishi tartibi (maqola uchun jurnal zonasi alohida tanlanadi). */
+export const STUDENT_UPLOAD_KIND_ORDER = [
+  'CERTIFICATE',
+  'OLYMPIAD',
+  'CONFERENCE',
+  'STARTUP',
+  'SPORT',
+  'VOLUNTEERING',
+  'EVENT',
+  'SCHOLARSHIP',
+  'EXCELLENCE',
+  'ARTICLE',
+] as const
+
+export type StudentUploadKind = (typeof STUDENT_UPLOAD_KIND_ORDER)[number]
+
+/** Har bir yoʻnalish uchun qisqa nizom/mezon eslatmasi (tanlashda koʻrinadi). */
+export const NIZOM_DIRECTION_HINTS: Record<StudentUploadKind, { label: string; hint: string }> = {
+  CERTIFICATE: {
+    label: 'Til / sertifikat',
+    hint: 'Rasmiy til sertifikati yoki analog hujjat. Nizom: bu yoʻnalish boʻyicha bitta materialga 1–10 ballgacha; umumiy reytingda har biri alohida koʻrinadi.',
+  },
+  OLYMPIAD: {
+    label: 'Olimpiadadagi oʻrin',
+    hint: 'Respublika/xalqaro fan olimpiadalari, oʻrin va fan nomini bayon + tasdiqlovchi fayl. Tur tanlanganda ball diapazoni nizom jadvalidagi «olimpiada» qatoriga bogʻlangan.',
+  },
+  CONFERENCE: {
+    label: 'Konferensiya ishtiroki',
+    hint: 'Ilmiy-amaliy konferensiya: tezis, maʼruzachi yoki ishtirokchi sifatida. Tashkilot va tadbir nomini yozing.',
+  },
+  STARTUP: {
+    label: 'Startap gʻoyasi',
+    hint: 'Innovatsion loyiha/startap faoliyati (texnik topshiriq, diplomi yoki boshqa rasmiy tasdiq).',
+  },
+  SPORT: {
+    label: 'Sport yutuqi',
+    hint: 'Sport musobaqalari, jamoa tarkibida yakka tartibdagi yutuq; lavozim va turnir nomini koʻrsating.',
+  },
+  VOLUNTEERING: {
+    label: 'Volontyorlik',
+    hint: 'Ijtimoiy yoki tibbiy yoʻnalishdagi volontyorlik; tashkilot va davomiylik/loyiha nomi.',
+  },
+  EVENT: {
+    label: 'Maʼnaviy-maʼrifiy tadbir',
+    hint: 'Maʼnaviy-tarbiyaviy tadbirlarda faol ishtirok (tashkilot, mavzu, rol).',
+  },
+  SCHOLARSHIP: {
+    label: 'Nomli stipendiya',
+    hint: 'Davlat yoki institut nomli stipendiyasi; beruvchi va periodni koʻrsating.',
+  },
+  EXCELLENCE: {
+    label: `A'lochi talaba`,
+    hint: `Aʼlo baho yoki "a'lochi" maqomi boʻyicha rasmiy tasdiqlovchi hujjat.`,
+  },
+  ARTICLE: {
+    label: 'Ilmiy maqola',
+    hint: 'Nashr turini pastda tanlang (respublika yoki xalqaro jurnal). Har ikkala tur ham nizom boʻyicha 1–10 ball oralig‘ida baholanadi.',
+  },
 }
 
 /** Badge — asosiy matn ikkala mavzuda ham `--color-text` (ochiq fonda o‘qiladi) */

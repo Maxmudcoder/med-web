@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { fetchPublicJson } from '@/lib/api'
 import { StaffStickerAvatar } from '@/components/AvatarCircleCover'
 
@@ -11,8 +10,6 @@ type SiteInfo = {
     degree: string | null
     phone: string | null
     officeHours: string | null
-    faculty: string | null
-    studyDirection: string | null
     stickerUrl: string
   }[]
 }
@@ -52,16 +49,6 @@ export function TeachersPage() {
           <h1 className="font-display text-3xl font-extrabold tracking-tight text-[var(--color-text)] sm:text-4xl">
             O‘qituvchilar va rahbariyat
           </h1>
-          <p className="mt-4 max-w-2xl text-[var(--color-text-muted)]">
-            Bu yerda direktor, oʻrinbosar dekanlar, dekanlar va talabalik bilan shug‘ullanuvchi boʻlimlar vakillari
-            koʻrinadi — har biri uchun lavozim nomi erkin; telefon, qabul grafigi, fakultet va mas’ul yo‘nalish administrator{' '}
-            <strong className="text-[var(--color-text)]">Sayt sozlamalari</strong> dagi «rahbariyat va xodimlar»dan saqlanadi.
-            Markaziy aloqa uchun{' '}
-            <Link to="/aloqa" className="font-semibold text-teal-400 underline decoration-teal-500/40 underline-offset-2 hover:text-teal-300">
-              Aloqa
-            </Link>{' '}
-            sahifasiga o‘ting.
-          </p>
         </header>
 
         {loading ? (
@@ -119,18 +106,6 @@ export function TeachersPage() {
                           Qabul / ish grafigi
                         </dt>
                         <dd className="mt-1 leading-relaxed text-[var(--color-text)]">{t.officeHours ?? '—'}</dd>
-                      </div>
-                      <div>
-                        <dt className="text-xs font-semibold uppercase text-[var(--color-text-muted)]">Fakultet</dt>
-                        <dd className="mt-1 leading-relaxed text-[var(--color-text)]">{t.faculty?.trim() || '—'}</dd>
-                      </div>
-                      <div>
-                        <dt className="text-xs font-semibold uppercase text-[var(--color-text-muted)]">
-                          Mas’ul yo‘nalish
-                        </dt>
-                        <dd className="mt-1 leading-relaxed text-[var(--color-text)]">
-                          {t.studyDirection?.trim() || '—'}
-                        </dd>
                       </div>
                     </dl>
                   </li>

@@ -7,12 +7,10 @@ const STUDENT_URLS: CabinetEndpoints = {
   avatar: '/api/student/cabinet/avatar',
   passportFront: '/api/student/cabinet/passport/front',
   passportBack: '/api/student/cabinet/passport/back',
-  achievements: '/api/student/cabinet/achievements',
-  achievement: (id) => `/api/student/cabinet/achievements/${encodeURIComponent(id)}`,
-  achievementFile: (id) => `/api/student/cabinet/achievements/${encodeURIComponent(id)}/file`,
   cabinetFile: (kind) => `/api/student/cabinet/files/${kind}`,
   summaryPdfPost: '/api/student/cabinet/summary-pdf',
   summaryPdfDelete: '/api/student/cabinet/summary-pdf',
+  dataExport: '/api/student/cabinet/export',
 }
 
 export function StudentCabinetPage() {
@@ -23,7 +21,7 @@ export function StudentCabinetPage() {
       urls={STUDENT_URLS}
       adminContactEditable={false}
       title="Shaxsiy kabinet"
-      subtitle="Profil, pasport (rasm yoki PDF skan), yakuniy maʼlumotnoma PDF si, telefon, manzil, fakultet va yoʻnalish — kabinetda saqlanadi. Administrator kirganda tashqariga chiqmaydi. Reyting uchun materiallarni «Yuklash» sahifasidan yuboring (AI + administrator)."
+      subtitle="Profil, pasport (rasm yoki PDF skan), yakuniy maʼlumotnoma PDF si va ichki arxiv yutuqlari kabinetda saqlanadi. Bitta PDF da barchasini (matn + rasmlar + yuklangan hujjatlar) yuklab olish mumkin. Reyting uchun materiallarni «Yuklash» sahifasidan yuboring."
     />
   )
 }

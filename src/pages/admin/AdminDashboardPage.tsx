@@ -113,6 +113,14 @@ export function AdminDashboardPage() {
             to: '/admin/elonlar',
           },
           {
+            key: 'talaba-xabar',
+            label: 'Talabaga xabar',
+            value: '→',
+            hint: 'Barcha faol talabalarga kabinet bildirishnomasi — bosing.',
+            accent: 'from-amber-500 to-orange-900',
+            to: '/admin/talaba-xabar',
+          },
+          {
             key: 'talabalar',
             label: 'Faol talabalar',
             value: String(stats.activeStudents),

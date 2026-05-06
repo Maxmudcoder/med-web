@@ -16,6 +16,7 @@ type Data = {
     points: number
     issuedAt: string
     note: string | null
+    scientificSupervisor?: string | null
   }[]
 }
 
@@ -110,6 +111,11 @@ export function PublicPortfolioPage() {
                   {it.note?.trim() ? (
                     <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-[var(--color-text)] print:text-gray-800">
                       {it.note.trim()}
+                    </p>
+                  ) : null}
+                  {it.scientificSupervisor?.trim() ? (
+                    <p className="mt-1 text-xs text-[var(--color-text-muted)] print:text-gray-600">
+                      Ilmiy rahbar: {it.scientificSupervisor.trim()}
                     </p>
                   ) : null}
                 </li>

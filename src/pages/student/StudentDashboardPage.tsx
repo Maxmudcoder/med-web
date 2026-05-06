@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { notifyOpenNotificationsPanel } from '@/components/NotificationPanel'
 import { fetchAuthJson, apiUrl } from '@/lib/api'
 import { useAuth } from '@/context/AuthContext'
 import {
@@ -27,30 +28,39 @@ export function StudentDashboardPage() {
   const [subsLoading, setSubsLoading] = useState(true)
   const [subsErr, setSubsErr] = useState('')
 
-  useEffect(() => {
+  const refreshSummary = useCallback(async () => {
     if (!token) return
-    let cancelled = false
-    ;(async () => {
-      try {
-        const s = await fetchAuthJson<{
-          totalPoints: number
-          unreadNotifications: number
-        }>('/api/student/summary', token)
-        if (!cancelled) {
-          setTotalPoints(s.totalPoints)
-          setUnread(s.unreadNotifications)
-        }
-      } catch {
-        if (!cancelled) {
-          setTotalPoints(null)
-          setUnread(0)
-        }
-      }
-    })()
-    return () => {
-      cancelled = true
+    try {
+      const s = await fetchAuthJson<{
+        totalPoints: number
+        unreadNotifications: number
+      }>('/api/student/summary', token)
+      setTotalPoints(s.totalPoints)
+      setUnread(s.unreadNotifications)
+    } catch {
+      setTotalPoints(null)
+      setUnread(0)
     }
   }, [token])
+
+  useEffect(() => {
+    void refreshSummary()
+  }, [refreshSummary])
+
+  useEffect(() => {
+    if (!token) return
+    const t = window.setInterval(() => void refreshSummary(), 7000)
+    function onVisible() {
+      if (document.visibilityState === 'visible') void refreshSummary()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('focus', onVisible)
+    return () => {
+      window.clearInterval(t)
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('focus', onVisible)
+    }
+  }, [token, refreshSummary])
 
   useEffect(() => {
     if (!token) return
@@ -107,6 +117,26 @@ export function StudentDashboardPage() {
           </div>
         </div>
       </div>
+
+      {unread > 0 ? (
+        <div
+          role="status"
+          className="flex flex-col gap-3 rounded-[1.5rem] border border-amber-500/35 bg-gradient-to-br from-amber-500/15 to-amber-500/5 px-4 py-4 shadow-lg shadow-amber-900/20 sm:flex-row sm:items-center sm:justify-between sm:px-6"
+        >
+          <p className="text-sm leading-relaxed text-[var(--color-text)]">
+            <span className="font-semibold text-amber-200">Sizda {unread} ta oʻqilmagan xabar bor.</span>{' '}
+            Administrator xabarlari ham shu yerda — pastki ichki tugma («Xabar») yoki quyidagi tugma bilan
+            roʻyxatni oching.
+          </p>
+          <button
+            type="button"
+            onClick={() => notifyOpenNotificationsPanel()}
+            className="shrink-0 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-amber-950 shadow-md transition hover:bg-amber-400 active:scale-[0.98]"
+          >
+            Xabarlarni ochish
+          </button>
+        </div>
+      ) : null}
 
       <section className="rounded-[1.5rem] border border-[var(--color-border-subtle)] bg-[var(--color-bg-card)]/90 p-6 shadow-lg backdrop-blur sm:p-8">
         <h2 className="font-display text-lg font-semibold text-[var(--color-text)]">
@@ -191,6 +221,14 @@ export function StudentDashboardPage() {
                         Ochiq sayt va umumiy reytingda bu material moderator tasdiqlaguncha chiqmaydi. Administrator
                         bildirishnomasi va AI tahlilidan keyin yakuniy ball beriladi.
                       </p>
+                    ) : null}
+                    {r.scientificSupervisor?.trim() ? (
+                      <div>
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">
+                          Ilmiy rahbar / masʻul oʻqituvchi
+                        </p>
+                        <p className="mt-1 text-[var(--color-text)]">{r.scientificSupervisor.trim()}</p>
+                      </div>
                     ) : null}
                     {r.note?.trim() ? (
                       <div>

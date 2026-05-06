@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { fetchAuthJson } from '@/lib/api'
+import { apiUrl, fetchAuthJson } from '@/lib/api'
 import { useAuth } from '@/context/AuthContext'
 
 type Row = {
@@ -13,6 +13,7 @@ type Row = {
   adminNote: string | null
   filePath: string
   createdAt: string
+  scientificSupervisor?: string | null
   aiScore?: number | null
   aiSuggestedPoints?: number | null
   aiAssessment?: string | null
@@ -28,6 +29,44 @@ export function StudentCertificatesPage() {
   const { token } = useAuth()
   const [items, setItems] = useState<Row[]>([])
   const [loading, setLoading] = useState(true)
+
+  async function downloadSubmissionPdf(submissionId: string, fallbackTitle: string) {
+    if (!token) return
+    try {
+      const r = await fetch(apiUrl(`/api/student/submissions/${encodeURIComponent(submissionId)}/pdf`), {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!r.ok) {
+        let msg = `HTTP ${r.status}`
+        try {
+          const j = (await r.clone().json()) as { error?: string }
+          if (j?.error) msg = j.error
+        } catch {
+          /* noop */
+        }
+        throw new Error(msg)
+      }
+      const blob = await r.blob()
+      const cd = r.headers.get('Content-Disposition')
+      let fileName = `${fallbackTitle.replace(/\s+/g, '_').slice(0, 80)}_pdf.pdf`
+      const m = /filename="([^";]+)"/.exec(cd ?? '')
+      if (m?.[1]) fileName = m[1]
+      const objectUrl = URL.createObjectURL(blob)
+      try {
+        const a = document.createElement('a')
+        a.href = objectUrl
+        a.download = fileName
+        a.rel = 'noopener'
+        document.body.appendChild(a)
+        a.click()
+        a.remove()
+      } finally {
+        URL.revokeObjectURL(objectUrl)
+      }
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'PDF yuklab boʻlmadi')
+    }
+  }
 
   const load = useCallback(async () => {
     if (!token) return
@@ -51,7 +90,8 @@ export function StudentCertificatesPage() {
         Materiallar va sertifikatlar
       </h1>
       <p className="mt-2 text-sm text-[var(--color-text-muted)] sm:text-base">
-        Yuklagan hujjatlaringiz ro‘yxati va har biri bo‘yicha moderatsiya holati.
+        Yuklagan hujjatlaringiz ro‘yxati va har biri bo‘yicha moderatsiya holati. Rasm yoki boshqa formatdagi ilovani bitta
+        PDF da olish uchun «PDF qilib yuklab olish»dan foydalaning.
       </p>
 
       {loading ? (
@@ -95,14 +135,23 @@ export function StudentCertificatesPage() {
                     {r.aiAssessment.length > 160 ? `${r.aiAssessment.slice(0, 160)}…` : r.aiAssessment}
                   </p>
                 ) : null}
-                <a
-                  href={r.filePath}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mt-4 inline-flex text-sm font-medium text-teal-400 hover:underline"
-                >
-                  Faylni ochish
-                </a>
+                <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+                  <a
+                    href={apiUrl(r.filePath)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex text-sm font-medium text-teal-400 hover:underline"
+                  >
+                    Faylni ochish
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => void downloadSubmissionPdf(r.id, r.title)}
+                    className="inline-flex text-sm font-medium text-teal-400 underline-offset-2 hover:underline"
+                  >
+                    PDF qilib yuklab olish
+                  </button>
+                </div>
               </article>
             ))}
           </div>
@@ -126,6 +175,11 @@ export function StudentCertificatesPage() {
                       <td className="px-5 py-4">
                         <p className="font-medium text-[var(--color-text)]">{r.title}</p>
                         <p className="text-xs text-[var(--color-text-muted)]">{r.orgName}</p>
+                        {r.scientificSupervisor?.trim() ? (
+                          <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">
+                            Ilmiy rahbar: {r.scientificSupervisor.trim()}
+                          </p>
+                        ) : null}
                         {r.adminNote && r.status === 'REJECTED' ? (
                           <p className="mt-1 text-xs text-red-300/90">{r.adminNote}</p>
                         ) : null}
@@ -157,14 +211,23 @@ export function StudentCertificatesPage() {
                         ) : null}
                       </td>
                       <td className="px-5 py-4">
-                        <a
-                          href={r.filePath}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-sm text-teal-400 hover:underline"
-                        >
-                          Ochish
-                        </a>
+                        <div className="flex flex-col gap-1.5">
+                          <a
+                            href={apiUrl(r.filePath)}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-sm text-teal-400 hover:underline"
+                          >
+                            Ochish
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => void downloadSubmissionPdf(r.id, r.title)}
+                            className="text-left text-sm text-teal-400 underline-offset-2 hover:underline"
+                          >
+                            PDF qilib yuklab olish
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}

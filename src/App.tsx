@@ -20,6 +20,7 @@ import { AdminStudentCabinetPage } from '@/pages/admin/AdminStudentCabinetPage'
 import { AdminModerationPage } from '@/pages/admin/AdminModerationPage'
 import { AdminAppealsPage } from '@/pages/admin/AdminAppealsPage'
 import { AdminAnnouncementsPage } from '@/pages/admin/AdminAnnouncementsPage'
+import { AdminStudentMessagePage } from '@/pages/admin/AdminStudentMessagePage'
 import { AdminContactMessagesPage } from '@/pages/admin/AdminContactMessagesPage'
 import { AdminTeachersPage } from '@/pages/admin/AdminTeachersPage'
 import { AdminSettingsPage } from '@/pages/admin/AdminSettingsPage'
@@ -61,6 +62,7 @@ export default function App() {
                 <Route path="shikoyatlar" element={<AdminAppealsPage />} />
                 <Route path="ai-yordamchi" element={<AdminAIAssistantPage />} />
                 <Route path="elonlar" element={<AdminAnnouncementsPage />} />
+                <Route path="talaba-xabar" element={<AdminStudentMessagePage />} />
                 <Route path="xabarlar" element={<AdminContactMessagesPage />} />
                 <Route path="sozlamalar" element={<AdminSettingsPage />} />
                 <Route path="oqituvchilar" element={<AdminTeachersPage />} />

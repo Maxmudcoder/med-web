@@ -21,6 +21,7 @@ type Item = {
 
 const KIND_LABEL: Record<string, string> = {
   ANNOUNCEMENT: `E'lon`,
+  STUDENT_BROADCAST: 'Talabaga xabar',
   ADMIN_SUBMISSION: 'Materiall moderatsiyasi',
   SUBMISSION_APPEAL: 'Ball shikoyati',
   CONTACT_MESSAGE: 'Aloqa xabari',
@@ -53,14 +54,25 @@ function audienceLine(kind: string, role: string | undefined): string {
   return 'Siz uchun'
 }
 
-const OPEN_EVENT = 'admin-notifications-open'
+const OPEN_EVENT = 'mediq-notifications-open'
+const OPEN_EVENT_LEGACY = 'admin-notifications-open'
 
-export function notifyOpenAdminNotifications() {
+export function notifyOpenNotificationsPanel() {
   if (typeof window === 'undefined') return
   window.dispatchEvent(new Event(OPEN_EVENT))
 }
 
-export function NotificationPanel() {
+/** Eski nom (boshqaruv paneli kartasi) */
+export function notifyOpenAdminNotifications() {
+  notifyOpenNotificationsPanel()
+}
+
+type NotificationPanelProps = {
+  /** Pastki mobil tabbar: kattaroq tugma va yorqinroq badges */
+  variant?: 'toolbar' | 'dock'
+}
+
+export function NotificationPanel({ variant = 'toolbar' }: NotificationPanelProps) {
   const navigate = useNavigate()
   const { token, user } = useAuth()
   const [open, setOpen] = useState(false)
@@ -74,6 +86,8 @@ export function NotificationPanel() {
   const [menuPos, setMenuPos] = useState({ top: 0, right: 16 })
   const prevUnread = useRef<number | null>(null)
   const boot = useRef(false)
+  const [studentToast, setStudentToast] = useState<{ title: string } | null>(null)
+  const toastTimerRef = useRef<number | null>(null)
 
   const placeMenu = useCallback(() => {
     const el = triggerRef.current
@@ -104,6 +118,14 @@ export function NotificationPanel() {
         if (latest) {
           showDesktopNotificationIfAllowed(latest.title, latest.body, `mediq-${latest.id}`)
         }
+        if (user?.role === 'STUDENT' && latest) {
+          if (toastTimerRef.current != null) window.clearTimeout(toastTimerRef.current)
+          setStudentToast({ title: latest.title.trim() || 'Yangi xabar' })
+          toastTimerRef.current = window.setTimeout(() => {
+            setStudentToast(null)
+            toastTimerRef.current = null
+          }, 6500)
+        }
       }
       boot.current = true
       prevUnread.current = next
@@ -115,14 +137,32 @@ export function NotificationPanel() {
     } finally {
       setLoading(false)
     }
-  }, [token])
+  }, [token, user?.role])
+
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current != null) window.clearTimeout(toastTimerRef.current)
+    }
+  }, [])
 
   useEffect(() => {
     void load()
-    const intervalMs = user?.role === 'ADMIN' ? 8000 : 22000
+    const intervalMs = user?.role === 'ADMIN' ? 8000 : 7000
     const t = window.setInterval(() => void load(), intervalMs)
     return () => window.clearInterval(t)
   }, [load, user?.role])
+
+  useEffect(() => {
+    function onVisible() {
+      if (document.visibilityState === 'visible') void load()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('focus', onVisible)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('focus', onVisible)
+    }
+  }, [load])
 
   /** Bosh sahifadan boshqaruv paneli kartasi orqali ochish */
   useEffect(() => {
@@ -133,7 +173,11 @@ export function NotificationPanel() {
       void load()
     }
     window.addEventListener(OPEN_EVENT, onExternalOpen)
-    return () => window.removeEventListener(OPEN_EVENT, onExternalOpen)
+    window.addEventListener(OPEN_EVENT_LEGACY, onExternalOpen)
+    return () => {
+      window.removeEventListener(OPEN_EVENT, onExternalOpen)
+      window.removeEventListener(OPEN_EVENT_LEGACY, onExternalOpen)
+    }
   }, [load, placeMenu])
 
   useEffect(() => {
@@ -234,6 +278,14 @@ export function NotificationPanel() {
                   const path = safeInternalPath(it.linkPath)
                   const kindUz = notificationKindUz(it.kind)
                   const who = audienceLine(it.kind, user?.role)
+                  const unreadRow = !it.readAt
+                  const isBroadcast =
+                    user?.role === 'STUDENT' && it.kind === 'STUDENT_BROADCAST' && unreadRow
+                  const rowUnread = unreadRow
+                    ? isBroadcast
+                      ? 'bg-amber-500/[0.12] ring-1 ring-inset ring-amber-400/50'
+                      : 'bg-teal-500/5 ring-1 ring-inset ring-teal-500/25'
+                    : ''
                   return (
                     <li key={it.id}>
                       <button
@@ -245,11 +297,26 @@ export function NotificationPanel() {
                             setOpen(false)
                           }
                         }}
-                        className={`w-full px-4 py-3 text-left transition hover:bg-white/[0.04] ${
-                          !it.readAt ? 'bg-teal-500/5' : ''
-                        }`}
+                        className={`w-full px-4 py-3 text-left transition hover:bg-white/[0.04] ${rowUnread}`}
                       >
-                        <p className="text-sm font-semibold text-[var(--color-text)]">{it.title}</p>
+                        <p className="text-sm font-semibold text-[var(--color-text)]">
+                          {unreadRow ? (
+                            <span
+                              aria-hidden
+                              className={`mr-1 ${isBroadcast ? 'text-amber-400' : 'text-teal-400'}`}
+                            >
+                              ●{' '}
+                            </span>
+                          ) : null}
+                          {isBroadcast ? (
+                            <>
+                              <span className="text-amber-500/95">ADMIN</span>
+                              <span className="text-[var(--color-text)]">{' · '}{it.title}</span>
+                            </>
+                          ) : (
+                            it.title
+                          )}
+                        </p>
                         <p className="mt-1 line-clamp-3 text-xs leading-relaxed text-[var(--color-text-muted)]">
                           {it.body}
                         </p>
@@ -280,6 +347,48 @@ export function NotificationPanel() {
         )
       : null
 
+  const bellBox =
+    variant === 'dock' ? 'h-11 min-h-[2.75rem] w-11 min-w-[2.75rem]' : 'h-10 w-10'
+  const unreadOutline =
+    unread > 0
+      ? user?.role === 'STUDENT' && variant === 'dock'
+        ? 'border-amber-400/70 text-amber-200 shadow-[0_0_0_3px_rgba(251,191,36,0.22)] hover:border-amber-300/85 hover:text-amber-50'
+        : 'border-teal-500/50 text-teal-400 hover:border-teal-400/65 hover:text-teal-300'
+      : 'border-[var(--color-border-subtle)] text-[var(--color-text-muted)] hover:border-teal-500/40 hover:text-teal-400'
+
+  const studentToastPortal =
+    studentToast && user?.role === 'STUDENT' && typeof document !== 'undefined'
+      ? createPortal(
+          <div
+            role="status"
+            aria-live="polite"
+            className="pointer-events-none fixed inset-x-0 bottom-20 z-[9999] flex justify-center px-3 sm:bottom-24"
+          >
+            <button
+              type="button"
+              className="pointer-events-auto w-full max-w-md rounded-2xl border border-amber-400/55 bg-[var(--color-bg-card)] px-4 py-3 text-left shadow-lg shadow-black/35 ring-2 ring-amber-400/25 transition hover:bg-[var(--color-bg-card)]/95"
+              onClick={() => {
+                if (toastTimerRef.current != null) window.clearTimeout(toastTimerRef.current)
+                toastTimerRef.current = null
+                setStudentToast(null)
+                placeMenu()
+                setOpen(true)
+                void load()
+              }}
+            >
+              <p className="text-xs font-semibold uppercase tracking-wide text-amber-400/95">
+                Yangi xabar keldi
+              </p>
+              <p className="mt-1 line-clamp-2 text-sm font-medium text-[var(--color-text)]">
+                {studentToast.title}
+              </p>
+              <p className="mt-1 text-[11px] text-[var(--color-text-muted)]">Bosib roʻyxatni oching</p>
+            </button>
+          </div>,
+          document.body,
+        )
+      : null
+
   return (
     <>
       <button
@@ -292,7 +401,7 @@ export function NotificationPanel() {
           setOpen((v) => !v)
           void load()
         }}
-        className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-bg-card)] text-[var(--color-text-muted)] transition hover:border-teal-500/40 hover:text-teal-400 ${
+        className={`relative flex ${bellBox} shrink-0 items-center justify-center rounded-xl border bg-[var(--color-bg-card)] transition ${unreadOutline} ${
           ring
             ? 'animate-pulse ring-2 ring-teal-400 ring-offset-2 ring-offset-[var(--color-bg-deep)]'
             : ''
@@ -301,7 +410,12 @@ export function NotificationPanel() {
         aria-expanded={open}
         aria-haspopup="dialog"
       >
-        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg
+          className={variant === 'dock' ? 'h-6 w-6' : 'h-5 w-5'}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -310,13 +424,22 @@ export function NotificationPanel() {
           />
         </svg>
         {unread > 0 ? (
-          <span className="absolute -right-1 -top-1 flex h-5 min-w-[1.25rem] max-w-[2.25rem] items-center justify-center rounded-full bg-teal-500 px-1 text-[10px] font-bold tabular-nums text-white">
+          <span
+            className={
+              variant === 'dock'
+                ? user?.role === 'STUDENT'
+                  ? 'absolute right-1 top-1 flex h-[1.35rem] min-w-[1.35rem] max-w-[3rem] items-center justify-center rounded-full bg-amber-500 px-1.5 text-[11px] font-bold tabular-nums text-amber-950 shadow-sm'
+                  : 'absolute right-1 top-1 flex h-[1.35rem] min-w-[1.35rem] max-w-[3rem] items-center justify-center rounded-full bg-teal-500 px-1.5 text-[11px] font-bold tabular-nums text-white shadow-sm'
+                : 'absolute -right-1 -top-1 flex h-5 min-w-[1.25rem] max-w-[2.25rem] items-center justify-center rounded-full bg-teal-500 px-1 text-[10px] font-bold tabular-nums text-white'
+            }
+          >
             {unread > 99 ? '99+' : unread}
           </span>
         ) : null}
       </button>
 
       {menuPortal}
+      {studentToastPortal}
     </>
   )
 }

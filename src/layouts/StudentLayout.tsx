@@ -120,8 +120,8 @@ export function StudentLayout() {
             </svg>
             Kabinet
           </NavLink>
-          <div className={bottomNavBase}>
-            <NotificationPanel />
+          <div className={`${bottomNavBase} overflow-visible`}>
+            <NotificationPanel variant="dock" />
             <span className="line-clamp-1 text-center text-[clamp(9px,2.65vw,11px)] font-semibold text-[var(--color-text-muted)]">
               Xabar
             </span>

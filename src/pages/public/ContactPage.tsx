@@ -92,8 +92,7 @@ export function ContactPage() {
             Aloqa
           </h1>
           <p className="mt-4 text-[var(--color-text-muted)]">
-            Savol va takliflar — quyidagi shaklda toʻgʻridan-toʻgʻri rahbariyatga yoziladi.
-            Administrator bilan tezkor bog‘lanish markaziy telefon (+998&nbsp;99&nbsp;677&nbsp;00&nbsp;99).
+            Savol va takliflar uchun quyidagi shaklni toʻldiring. Tezkor aloqa: markaziy telefon (+998&nbsp;99&nbsp;677&nbsp;00&nbsp;99).
           </p>
         </header>
 
@@ -186,10 +185,6 @@ export function ContactPage() {
               <p className="text-[11px] font-bold uppercase tracking-wider text-teal-400">
                 Markaziy aloqa kanallari
               </p>
-              <p className="text-sm text-[var(--color-text-muted)]">
-                Shu ma’lumotlar «Sayt sozlamalari» orqali admin tomonidan boshqariladi.
-              </p>
-
               {loading ? (
                 <p className="py-8 text-sm text-[var(--color-text-muted)]">Yuklanmoqda…</p>
               ) : err ? (

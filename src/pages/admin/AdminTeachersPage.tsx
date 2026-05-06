@@ -25,9 +25,10 @@ type TeacherApi = {
   degree: string | null
   phone: string | null
   officeHours: string | null
-  faculty: string | null
-  studyDirection: string | null
   stickerUrl: string
+  /** Serverdan kelishi mumkin (eski yozuvlar); forma va saqlashda ishlatilmaydi. */
+  faculty?: string | null
+  studyDirection?: string | null
 }
 
 type TeacherDraft = {
@@ -37,8 +38,6 @@ type TeacherDraft = {
   degree: string | null
   phone: string | null
   officeHours: string | null
-  faculty: string | null
-  studyDirection: string | null
   stickerUrl: string
 }
 
@@ -54,8 +53,6 @@ function fromServer(t: TeacherApi): TeacherDraft {
     degree: t.degree,
     phone: t.phone,
     officeHours: t.officeHours,
-    faculty: t.faculty,
-    studyDirection: t.studyDirection,
     stickerUrl: t.stickerUrl,
   }
 }
@@ -68,8 +65,6 @@ function blankRow(): TeacherDraft {
     degree: null,
     phone: null,
     officeHours: null,
-    faculty: null,
-    studyDirection: null,
     stickerUrl: '/stickers/teacher.svg',
   }
 }
@@ -174,8 +169,6 @@ export function AdminTeachersPage() {
         degree: t.degree?.trim() || undefined,
         phone: t.phone?.trim() || undefined,
         officeHours: t.officeHours?.trim() || undefined,
-        faculty: t.faculty?.trim() || undefined,
-        studyDirection: t.studyDirection?.trim() || undefined,
         stickerUrl: t.stickerUrl.trim() || '/stickers/teacher.svg',
       }))
 
@@ -230,8 +223,7 @@ export function AdminTeachersPage() {
             <div>
               <h2 className="font-display text-xl font-bold text-[var(--color-text)]">Jamoa ro‘yxati</h2>
               <p className="mt-2 max-w-3xl text-sm text-[var(--color-text-muted)]">
-                Kartalar ketma-ketligi tepadan pastga. Dekanlar uchun fakultet va yo‘nalish maydonlari ham ochiq
-                sahifada chiqadi.
+                Kartalar ketma-ketligi tepadan pastga — lavozim, ism, aloqa va fotosurat ochiq sahifada chiqadi.
               </p>
             </div>
             <div className="flex shrink-0 flex-wrap gap-2">
@@ -337,28 +329,6 @@ export function AdminTeachersPage() {
                         value={t.officeHours ?? ''}
                         onChange={(e) => updateTeacher(i, { officeHours: e.target.value || null })}
                         placeholder="Masalan: Dush–Juma 10:00–14:00, 317-xona"
-                        className="w-full rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-deep)] px-3 py-2 text-sm text-[var(--color-text)]"
-                      />
-                    </div>
-                    <div className="sm:col-span-2">
-                      <label className="mb-1 block text-xs text-[var(--color-text-muted)]">
-                        Fakultet (dekan / zamdekkan uchun — ixtiyoriy)
-                      </label>
-                      <input
-                        value={t.faculty ?? ''}
-                        onChange={(e) => updateTeacher(i, { faculty: e.target.value || null })}
-                        placeholder="Masalan: Pediatriya fakulteti"
-                        className="w-full rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-deep)] px-3 py-2 text-sm text-[var(--color-text)]"
-                      />
-                    </div>
-                    <div className="sm:col-span-2">
-                      <label className="mb-1 block text-xs text-[var(--color-text-muted)]">
-                        Mas’ul yo‘nalish yoki talabalar guruhi (ixtiyoriy)
-                      </label>
-                      <input
-                        value={t.studyDirection ?? ''}
-                        onChange={(e) => updateTeacher(i, { studyDirection: e.target.value || null })}
-                        placeholder="Masalan: 59104000 — Pediatriya ishchi malakasi"
                         className="w-full rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-deep)] px-3 py-2 text-sm text-[var(--color-text)]"
                       />
                     </div>

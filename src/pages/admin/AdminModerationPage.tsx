@@ -24,7 +24,7 @@ type KindBand = {
   guidanceUz: string
 }
 
-/** Serverdagi gradingRubric `kinds` kalitlari — 10 mezon (+ maqolaRespublika/xalqaro) */
+/** Serverdagi gradingRubric `kinds` — 10 taʼsir yoʻnalishi (maqola: respublika + xalqaro tuzilmalari) */
 const NIZOM_KIND_ORDER = [
   'CERTIFICATE',
   'OLYMPIAD',
@@ -60,7 +60,7 @@ function normGradingDefaults(
     volunteeringPoints: raw?.volunteeringPoints ?? 6,
     scholarshipPoints: raw?.scholarshipPoints ?? 7,
     excellencePoints: raw?.excellencePoints ?? 8,
-    articleRepublicPoints: raw?.articleRepublicPoints ?? 5,
+    articleRepublicPoints: raw?.articleRepublicPoints ?? 7,
     articleIntlPoints: raw?.articleIntlPoints ?? 10,
     maxPointsPerSubmission: raw?.maxPointsPerSubmission ?? 10,
   }
@@ -75,6 +75,7 @@ type Item = {
   issuedAt: string
   note: string | null
   submittedDraft: string | null
+  scientificSupervisor: string | null
   filePath: string
   aiScore: number | null
   aiSuggestedPoints: number | null
@@ -126,8 +127,9 @@ function kindUz(kind: string) {
 }
 
 function rubricBandLabelUz(key: string) {
-  if (key === 'ARTICLE_REPUBLIC') return 'Maqola — respublika jurnali'
-  if (key === 'ARTICLE_INTL') return 'Maqola — xalqaro jurnal'
+  if (key === 'ARTICLE_REPUBLIC')
+    return 'Ilmiy maqola — respublika jurnal (10-yoʻnalish, 1–10 ball)'
+  if (key === 'ARTICLE_INTL') return 'Ilmiy maqola — xalqaro jurnal (10-yoʻnalish, 1–10 ball)'
   return kindUz(key)
 }
 
@@ -161,7 +163,7 @@ function clampPtsForSubmission(
   }
   const band = snap ? kindBandForRubric(it, snap) : null
   const hi = band?.cappedMax ?? defs.maxPointsPerSubmission
-  const lo = band ? Math.max(0, band.min) : 0
+  const lo = band ? Math.max(1, band.min) : 1
   return Math.min(hi, Math.max(lo, rounded))
 }
 
@@ -459,10 +461,11 @@ export function AdminModerationPage() {
         bo‘lsa).
         <span className="mt-2 block text-sm">
           <strong className="text-[var(--color-text)]">Rasmiy mezon:</strong>{' '}
-          talaba uchun maksimal 100 ball — 10 taʼsir yoʻnalishi boʻyicha har biriga 10 ballgacha; bitta yuklangan
-          material boʻyicha yakun ball ushbu yoʻnalish doirasidagi yuqori cheklov bilan cheklangan. Shaxsiy kabinet
-          (pasport, obyektivka) toʻldirilishi taʼlim muassasasi talablariga qoldiriladi — tizim yuklamani avvalo
-          majburiy toʻxtatmaydi; kerak boʻlsa moderator talaba kabinetini qoʻlda tekshirish mumkin.
+          har bir taʼsir yoʻnalishidagi bitta tasdiqlangan material uchun maksimal <strong>10 ball</strong>; talaba umumiy
+          reytingi oʻn yoʻnalish yig‘indisi sifatida <strong>100 ballgacha</strong>. Bitta yuklangan material faqat bitta tur
+          bilan baholanadi. Shaxsiy kabinet (pasport, obyektivka) toʻldirilishi taʼlim muassasasi talablariga
+          qoldiriladi — tizim yuklamani avvalo majburiy toʻxtatmaydi; kerak boʻlsa moderator talaba kabinetini qoʻlda
+          tekshirish mumkin.
         </span>
       </p>
       {err ? <p className="mb-4 text-[var(--color-danger)]">{err}</p> : null}
@@ -475,7 +478,7 @@ export function AdminModerationPage() {
           Nizom: boshlang‘ich ballar va yuqori cheklov
         </h2>
         <p className="mt-1 text-xs text-[var(--color-text-muted)]">
-          Bitta tasdiqlangan materiāl uchun yakuniy ball 0–{gradingDefaults.maxPointsPerSubmission} oralig‘ida. Tur
+          Bitta tasdiqlangan materiāl uchun yakuniy ball 1–{gradingDefaults.maxPointsPerSubmission} oralig‘ida. Tur
           bo‘yicha AI tavsiyasi qoʻllanmagan boʻlsa, shu yerda turga mos tayanch ishlatiladi.
         </p>
         <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -485,7 +488,7 @@ export function AdminModerationPage() {
             </label>
             <input
               type="number"
-              min={0}
+              min={1}
               max={gradingDefaults.maxPointsPerSubmission}
               value={gradingDefaults.certificatePoints}
               onChange={(e) =>
@@ -493,7 +496,7 @@ export function AdminModerationPage() {
                   ...g,
                   certificatePoints: Math.min(
                     g.maxPointsPerSubmission,
-                    Math.max(0, Math.round(Number(e.target.value) || 0)),
+                    Math.max(1, Math.round(Number(e.target.value) || 1)),
                   ),
                 }))
               }
@@ -506,7 +509,7 @@ export function AdminModerationPage() {
             </label>
             <input
               type="number"
-              min={0}
+              min={1}
               max={gradingDefaults.maxPointsPerSubmission}
               value={gradingDefaults.olympiadPoints}
               onChange={(e) =>
@@ -514,7 +517,7 @@ export function AdminModerationPage() {
                   ...g,
                   olympiadPoints: Math.min(
                     g.maxPointsPerSubmission,
-                    Math.max(0, Math.round(Number(e.target.value) || 0)),
+                    Math.max(1, Math.round(Number(e.target.value) || 1)),
                   ),
                 }))
               }
@@ -527,7 +530,7 @@ export function AdminModerationPage() {
             </label>
             <input
               type="number"
-              min={0}
+              min={1}
               max={gradingDefaults.maxPointsPerSubmission}
               value={gradingDefaults.conferencePoints}
               onChange={(e) =>
@@ -535,7 +538,7 @@ export function AdminModerationPage() {
                   ...g,
                   conferencePoints: Math.min(
                     g.maxPointsPerSubmission,
-                    Math.max(0, Math.round(Number(e.target.value) || 0)),
+                    Math.max(1, Math.round(Number(e.target.value) || 1)),
                   ),
                 }))
               }
@@ -548,7 +551,7 @@ export function AdminModerationPage() {
             </label>
             <input
               type="number"
-              min={0}
+              min={1}
               max={gradingDefaults.maxPointsPerSubmission}
               value={gradingDefaults.startupPoints}
               onChange={(e) =>
@@ -556,7 +559,7 @@ export function AdminModerationPage() {
                   ...g,
                   startupPoints: Math.min(
                     g.maxPointsPerSubmission,
-                    Math.max(0, Math.round(Number(e.target.value) || 0)),
+                    Math.max(1, Math.round(Number(e.target.value) || 1)),
                   ),
                 }))
               }
@@ -569,7 +572,7 @@ export function AdminModerationPage() {
             </label>
             <input
               type="number"
-              min={0}
+              min={1}
               max={gradingDefaults.maxPointsPerSubmission}
               value={gradingDefaults.sportPoints}
               onChange={(e) =>
@@ -577,7 +580,7 @@ export function AdminModerationPage() {
                   ...g,
                   sportPoints: Math.min(
                     g.maxPointsPerSubmission,
-                    Math.max(0, Math.round(Number(e.target.value) || 0)),
+                    Math.max(1, Math.round(Number(e.target.value) || 1)),
                   ),
                 }))
               }
@@ -590,7 +593,7 @@ export function AdminModerationPage() {
             </label>
             <input
               type="number"
-              min={0}
+              min={1}
               max={gradingDefaults.maxPointsPerSubmission}
               value={gradingDefaults.eventPoints}
               onChange={(e) =>
@@ -598,7 +601,7 @@ export function AdminModerationPage() {
                   ...g,
                   eventPoints: Math.min(
                     g.maxPointsPerSubmission,
-                    Math.max(0, Math.round(Number(e.target.value) || 0)),
+                    Math.max(1, Math.round(Number(e.target.value) || 1)),
                   ),
                 }))
               }
@@ -611,7 +614,7 @@ export function AdminModerationPage() {
             </label>
             <input
               type="number"
-              min={0}
+              min={1}
               max={gradingDefaults.maxPointsPerSubmission}
               value={gradingDefaults.volunteeringPoints}
               onChange={(e) =>
@@ -619,7 +622,7 @@ export function AdminModerationPage() {
                   ...g,
                   volunteeringPoints: Math.min(
                     g.maxPointsPerSubmission,
-                    Math.max(0, Math.round(Number(e.target.value) || 0)),
+                    Math.max(1, Math.round(Number(e.target.value) || 1)),
                   ),
                 }))
               }
@@ -632,7 +635,7 @@ export function AdminModerationPage() {
             </label>
             <input
               type="number"
-              min={0}
+              min={1}
               max={gradingDefaults.maxPointsPerSubmission}
               value={gradingDefaults.scholarshipPoints}
               onChange={(e) =>
@@ -640,7 +643,7 @@ export function AdminModerationPage() {
                   ...g,
                   scholarshipPoints: Math.min(
                     g.maxPointsPerSubmission,
-                    Math.max(0, Math.round(Number(e.target.value) || 0)),
+                    Math.max(1, Math.round(Number(e.target.value) || 1)),
                   ),
                 }))
               }
@@ -653,7 +656,7 @@ export function AdminModerationPage() {
             </label>
             <input
               type="number"
-              min={0}
+              min={1}
               max={gradingDefaults.maxPointsPerSubmission}
               value={gradingDefaults.excellencePoints}
               onChange={(e) =>
@@ -661,7 +664,7 @@ export function AdminModerationPage() {
                   ...g,
                   excellencePoints: Math.min(
                     g.maxPointsPerSubmission,
-                    Math.max(0, Math.round(Number(e.target.value) || 0)),
+                    Math.max(1, Math.round(Number(e.target.value) || 1)),
                   ),
                 }))
               }
@@ -670,32 +673,11 @@ export function AdminModerationPage() {
           </div>
           <div>
             <label className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-[var(--color-text-muted)]">
-              Maqola — respublika jurnali (ARTICLE_REPUBLIC)
+              10-chi yoʻnalish — ilmiy maqola, xalqaro jurnal tayanchi (ARTICLE_INTL; respublika ham 1–10 ball)
             </label>
             <input
               type="number"
-              min={0}
-              max={gradingDefaults.maxPointsPerSubmission}
-              value={gradingDefaults.articleRepublicPoints}
-              onChange={(e) =>
-                setGradingDefaults((g) => ({
-                  ...g,
-                  articleRepublicPoints: Math.min(
-                    Math.min(g.maxPointsPerSubmission, 5),
-                    Math.max(0, Math.round(Number(e.target.value) || 0)),
-                  ),
-                }))
-              }
-              className="w-full rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-bg-deep)] px-3 py-2 tabular-nums text-sm text-[var(--color-text)]"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-[var(--color-text-muted)]">
-              Maqola — xalqaro jurnal (ARTICLE_INTL)
-            </label>
-            <input
-              type="number"
-              min={0}
+              min={1}
               max={gradingDefaults.maxPointsPerSubmission}
               value={gradingDefaults.articleIntlPoints}
               onChange={(e) =>
@@ -703,7 +685,7 @@ export function AdminModerationPage() {
                   ...g,
                   articleIntlPoints: Math.min(
                     g.maxPointsPerSubmission,
-                    Math.max(0, Math.round(Number(e.target.value) || 0)),
+                    Math.max(1, Math.round(Number(e.target.value) || 1)),
                   ),
                 }))
               }
@@ -713,21 +695,25 @@ export function AdminModerationPage() {
         </div>
         <div className="mt-3">
           <label className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-[var(--color-text-muted)]">
-            Bitta material uchun yuqori cheklov (odatda 10)
+            Bitta material uchun yuqori cheklov (nizom: har bir yoʻnalish 10 ballgacha)
           </label>
           <input
             type="number"
             min={1}
-            max={100}
+            max={10}
             value={gradingDefaults.maxPointsPerSubmission}
             onChange={(e) =>
               setGradingDefaults((g) => ({
                 ...g,
-                maxPointsPerSubmission: Math.min(100, Math.max(1, Math.round(Number(e.target.value) || 10))),
+                maxPointsPerSubmission: Math.min(10, Math.max(1, Math.round(Number(e.target.value) || 10))),
               }))
             }
             className="w-full max-w-xs rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-bg-deep)] px-3 py-2 tabular-nums text-sm text-[var(--color-text)]"
           />
+          <p className="mt-1 text-[11px] text-[var(--color-text-muted)]">
+            Yangi nizom: har bir 10 taʼsir yoʻnalishi boʻyicha bitta tasdiqlangan material maksimal 10 ball. Jami reyting
+            teorik maksimumi 100 ball.
+          </p>
         </div>
         <div className="mt-4 grid gap-3 lg:grid-cols-2">
           <label className="block text-[11px] font-medium uppercase tracking-wide text-[var(--color-text-muted)]">
@@ -755,8 +741,26 @@ export function AdminModerationPage() {
               Tur bo‘yicha min/max diapazonlar (tizim nusxasi)
             </summary>
             <ul className="mt-2 space-y-1.5 pl-3 leading-relaxed">
-              {NIZOM_KIND_ORDER.map((key) => {
+              {NIZOM_KIND_ORDER.filter((k) => k !== 'ARTICLE_INTL').map((key) => {
+                if (key === 'ARTICLE_REPUBLIC') {
+                  const rep = rubricSnap.kinds.ARTICLE_REPUBLIC
+                  const intl = rubricSnap.kinds.ARTICLE_INTL
+                  if (!rep || !intl) return null
+                  const hiR = Math.min(rep.max, rubricSnap.maxPointsPerSubmission)
+                  const hiI = Math.min(intl.max, rubricSnap.maxPointsPerSubmission)
+                  return (
+                    <li key="ARTICLE">
+                      <span className="font-medium text-[var(--color-text)]">
+                        10. Ilmiy maqola (respublika / xalqaro)
+                      </span>{' '}
+                      — respublika: tayanch <span className="tabular-nums">{rep.defaultPoints}</span>, diapazon{' '}
+                      {rep.min}…{hiR} bp; xalqaro: tayanch <span className="tabular-nums">{intl.defaultPoints}</span>,
+                      diapazon {intl.min}…{hiI} bp.
+                    </li>
+                  )
+                }
                 const kk = rubricSnap.kinds[key]
+                if (!kk) return null
                 const hi = Math.min(kk.max, rubricSnap.maxPointsPerSubmission)
                 return (
                   <li key={key}>
@@ -781,16 +785,7 @@ export function AdminModerationPage() {
           {gradingSaveMsg ? <span className="text-xs text-teal-300">{gradingSaveMsg}</span> : null}
         </div>
       </section>
-      <button
-        type="button"
-        onClick={() => void load()}
-        className="mb-6 rounded-xl border border-[var(--color-border-subtle)] px-4 py-2 text-sm text-[var(--color-text)]"
-      >
-        Yangilash
-      </button>
-      {items.length === 0 ? (
-        <p className="text-[var(--color-text-muted)]">Hozircha navbat yo‘q.</p>
-      ) : (
+      {items.length > 0 ? (
         <ul className="space-y-6">
           {items.map((it) => {
             const basePts = defaultPointsForKind(it.kind, gradingDefaults, it.articleJournalTier)
@@ -845,6 +840,14 @@ export function AdminModerationPage() {
                         {it.submittedDraft.trim()}
                       </p>
                     </details>
+                  ) : null}
+                  {it.scientificSupervisor?.trim() ? (
+                    <p className="mt-3 rounded-xl border border-teal-500/30 bg-teal-500/10 px-3 py-2 text-sm text-[var(--color-text)]">
+                      <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">
+                        Ilmiy rahbar (talaba)
+                      </span>
+                      <span className="mt-1 block break-words">{it.scientificSupervisor.trim()}</span>
+                    </p>
                   ) : null}
                   <div className="mt-4 space-y-2">
                     <label className="block text-[11px] font-medium uppercase tracking-wide text-[var(--color-text-muted)]">
@@ -928,10 +931,10 @@ export function AdminModerationPage() {
                   ) : null}
                   <div className="mt-4 space-y-3">
                     <label className="block text-xs text-[var(--color-text-muted)]">
-                      AI tavsiya balli (nizom: 0…{ptsCap})
+                      AI tavsiya balli (nizom: 1…{ptsCap})
                       <input
                         type="number"
-                        min={0}
+                        min={1}
                         max={ptsCap}
                         value={gptSuggestById[it.id] ?? basePts}
                         onChange={(e) => {
@@ -1057,7 +1060,7 @@ export function AdminModerationPage() {
                       <span>Yakuniy ball</span>
                       <input
                         type="number"
-                        min={0}
+                        min={1}
                         max={ptsCap}
                         value={finalPtsById[it.id] ?? gptSuggestById[it.id] ?? basePts}
                         onChange={(e) => {
@@ -1107,7 +1110,7 @@ export function AdminModerationPage() {
             )
           })}
         </ul>
-      )}
+      ) : null}
     </div>
   )
 }

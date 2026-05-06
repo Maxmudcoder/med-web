@@ -78,10 +78,10 @@ export function HomePage() {
               <span className="text-[var(--color-text)]">reyting va sertifikat platformasi</span>
             </h1>
             <p className="mt-6 max-w-xl text-base leading-relaxed text-[var(--color-text-muted)] sm:text-lg">
-              Sertifikat, olimpiada, konferensiya va boshqa 10 yoʻnalish boʻyicha materiallar moderator tasdig‘idan so‘ng
-              reytingda ko‘rinadi. Har bir yoʻnalish uchun bitta material bo‘yicha 1–10 ballgacha yakuniy qiymat qoʻyiladi;
-              talaba jami 100 ball toʻplay oladi. Yuklamalar AI tahlili va moderator tekshiruvidan oʻtadi; pasport va boshqa
-              kabinet hujjatlarini taʼlim muassasasi va oʻqituvchi yoʻriqnomasi asosida toʻldirish mumkin.
+              Reyting 10 ta taʼsir yoʻnalishi boʻyicha: har bir yoʻnalishda bitta tasdiqlangan material uchun{' '}
+              <span className="font-semibold text-[var(--color-text)]">maksimal 10 ball</span>, jami teorik cheklov{' '}
+              <span className="font-semibold text-[var(--color-text)]">100 ball</span>. Yakuniy ball va nizom moderator
+              zimmasida.
             </p>
             <div className="mt-8 flex flex-col gap-3 min-[400px]:flex-row min-[400px]:flex-wrap sm:mt-10 sm:gap-4">
               <Link

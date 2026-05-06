@@ -25,8 +25,6 @@ type SiteInfo = {
     stickerUrl: string
     phone: string | null
     officeHours: string | null
-    faculty: string | null
-    studyDirection: string | null
   }[]
 }
 
@@ -162,7 +160,7 @@ export function StudentSettingsPage() {
           Sozlamalar va aloqa
         </h1>
         <p className="mt-2 text-[var(--color-text-muted)]">
-          Kontaktlar va rahbariyat kartochkalari administrator tomonidan yangilanadi; bu yerda ularni ko‘rasiz.
+          Quyida umumiy aloqa kanallari va mas’ullar kartochkalari chiqadi — ular boshqaruv panelidan yangilanadi.
         </p>
       </div>
 
@@ -367,18 +365,6 @@ export function StudentSettingsPage() {
                     ) : null}
                     {t.officeHours ? (
                       <p className="mt-1 text-xs text-[var(--color-text-muted)]">{t.officeHours}</p>
-                    ) : null}
-                    {t.faculty?.trim() ? (
-                      <p className="mt-1 text-xs text-[var(--color-text-muted)]">
-                        <span className="font-semibold text-teal-400/90">Fakultet: </span>
-                        {t.faculty.trim()}
-                      </p>
-                    ) : null}
-                    {t.studyDirection?.trim() ? (
-                      <p className="mt-1 text-xs text-[var(--color-text-muted)]">
-                        <span className="font-semibold text-teal-400/90">Yo‘nalish: </span>
-                        {t.studyDirection.trim()}
-                      </p>
                     ) : null}
                   </div>
                 </li>

@@ -5,12 +5,7 @@ import { decodeUzAddress, encodeUzAddress, type UzAddrPayload } from '@/lib/uzAd
 import { getUzAddressHierarchy, tumanIdToMfyFileSlug, type UzViloyat } from '@/lib/uzGeoHierarchy'
 import { loadMahallaOptionsForTuman } from '@/lib/loadUzMahallaOptions'
 import { AvatarCircleCover } from '@/components/AvatarCircleCover'
-import {
-  CABINET_CATEGORY_ORDER,
-  type CabinetCategory,
-  cabinetCategoryLabelUz,
-} from '@/lib/cabinetCategories'
-import { filePickTriggerLabelClass, nativeFileInputClass } from '@/lib/fileFieldStyles'
+import { filePickTriggerLabelClass } from '@/lib/fileFieldStyles'
 
 export type CabinetFileKind = 'passport-front' | 'passport-back' | 'summary-pdf' | 'avatar'
 
@@ -20,10 +15,6 @@ export type CabinetEndpoints = {
   avatar: string
   passportFront: string
   passportBack: string
-  achievements: string
-  achievement: (id: string) => string
-  achievementFile: (id: string) => string
-  /** Autentifikatsiyali GET — kontentDisposition:attachment */
   cabinetFile: (kind: CabinetFileKind) => string
   summaryPdfPost: string
   summaryPdfDelete: string
@@ -179,25 +170,6 @@ export function CabinetPanel(props: {
   /** Yil, oy va kun uchun tanlash (brauzerdagi kalendardan mustaqil) */
   const [birthPick, setBirthPick] = useState({ y: '', m: '', d: '' })
 
-  const [editId, setEditId] = useState<string | null>(null)
-  const [editForm, setEditForm] = useState({
-    title: '',
-    description: '',
-    achievedAt: '',
-    category: 'CERTIFICATE_LANG' as CabinetCategory,
-    certificateLanguage: '',
-  })
-
-  const [addOpen, setAddOpen] = useState(false)
-  const [addForm, setAddForm] = useState({
-    title: '',
-    description: '',
-    achievedAt: '',
-    category: 'CERTIFICATE_LANG' as CabinetCategory,
-    certificateLanguage: '',
-  })
-
-  const [newAttach, setNewAttach] = useState<File | null>(null)
   const [summaryPdfBusy, setSummaryPdfBusy] = useState(false)
 
   const birthYearOptions = useMemo(() => {
@@ -565,129 +537,6 @@ export function CabinetPanel(props: {
     return Boolean(rel?.toLowerCase().endsWith('.pdf'))
   }
 
-  function startEdit(row: AchievementRow) {
-    setEditId(row.id)
-    setEditForm({
-      title: row.title,
-      description: row.description ?? '',
-      achievedAt: row.achievedAt,
-      category: (CABINET_CATEGORY_ORDER as readonly string[]).includes(row.category)
-        ? (row.category as CabinetCategory)
-        : 'CERTIFICATE_LANG',
-      certificateLanguage: row.certificateLanguage ?? '',
-    })
-  }
-
-  async function saveEditAch() {
-    if (!token || !editId) return
-    setErr('')
-    try {
-      const patch: Record<string, unknown> = {
-        category: editForm.category,
-        title: editForm.title.trim(),
-        description: editForm.description.trim() || null,
-        achievedAt: editForm.achievedAt.trim(),
-      }
-      if (editForm.category === 'CERTIFICATE_LANG') {
-        patch.certificateLanguage = editForm.certificateLanguage.trim() || null
-      } else {
-        patch.certificateLanguage = null
-      }
-      const data = await fetchAuthJson<CabinetPayload>(
-        urls.achievement(editId),
-        token,
-        { method: 'PATCH', body: JSON.stringify(patch) },
-      )
-      setPayload(data)
-      setEditId(null)
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Xato')
-    }
-  }
-
-  async function removeFileAch(id: string) {
-    if (!token || !confirm('Faylni oʻchirishni tasdiqlaysizmi?')) return
-    setErr('')
-    try {
-      const data = await fetchAuthJson<CabinetPayload>(urls.achievement(id), token, {
-        method: 'PATCH',
-        body: JSON.stringify({ removeFile: true }),
-      })
-      setPayload(data)
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Xato')
-    }
-  }
-
-  async function replaceFileAch(id: string, file: File | null) {
-    if (!token || !file) return
-    setErr('')
-    const fd = new FormData()
-    fd.append('file', file)
-    try {
-      const data = await fetchAuthForm<CabinetPayload>(urls.achievementFile(id), token, fd)
-      setPayload(data)
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Xato')
-    }
-  }
-
-  async function deleteAch(id: string) {
-    if (!token || !confirm('Yozuv oʻchiriladi. Davom etasizmi?')) return
-    setErr('')
-    try {
-      const data = await fetchAuthJson<CabinetPayload>(urls.achievement(id), token, {
-        method: 'DELETE',
-      })
-      setPayload(data)
-      if (editId === id) setEditId(null)
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Xato')
-    }
-  }
-
-  async function createAchSubmit(e: FormEvent) {
-    e.preventDefault()
-    if (!token) return
-    setErr('')
-    const fd = new FormData()
-    fd.append('category', addForm.category)
-    fd.append('title', addForm.title.trim())
-    fd.append('description', addForm.description.trim())
-    fd.append('achievedAt', addForm.achievedAt.trim())
-    if (addForm.category === 'CERTIFICATE_LANG')
-      fd.append('certificateLanguage', addForm.certificateLanguage.trim())
-    if (newAttach) fd.append('file', newAttach)
-    try {
-      const data = await fetchAuthForm<CabinetPayload>(urls.achievements, token, fd, {
-        method: 'POST',
-      })
-      setPayload(data)
-      setAddOpen(false)
-      setNewAttach(null)
-      setAddForm({
-        title: '',
-        description: '',
-        achievedAt: '',
-        category: 'CERTIFICATE_LANG',
-        certificateLanguage: '',
-      })
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Xato')
-    }
-  }
-
-  const grouped = useMemo(() => {
-    const list = payload?.achievements ?? []
-    const m = new Map<string, AchievementRow[]>()
-    for (const c of CABINET_CATEGORY_ORDER) m.set(c, [])
-    for (const a of list) {
-      if (!m.has(a.category)) m.set(a.category, [])
-      m.get(a.category)!.push(a)
-    }
-    return CABINET_CATEGORY_ORDER.map((c) => ({ cat: c, rows: m.get(c)! }))
-  }, [payload?.achievements])
-
   if (!token)
     return <p className="text-[var(--color-text-muted)]">Kirish talab qilinadi.</p>
 
@@ -721,7 +570,7 @@ export function CabinetPanel(props: {
               Maʼlumotlar va fayllar faqat kabinetda saqlanadi (sayt boshqasiga chiqmaydi). Talaba oʻzi toʻldiradi va
               yuklaydi; administrator ham taʼhirlashi va barchani — boshqa pasport/avatardan tortib, toʻldirilgan
               formalardagi yozuvlar bilan birgalikda — bir PDF da yoki alohida fayllar sifatida{' '}
-              <strong className="text-[var(--color-text)]">yuklab olishi</strong> mumkin.
+              <strong className="text-[var(--color-text)]">                  yuklab olishi</strong> mumkin.
             </p>
             {urls.dataExport ? (
               <div className="mt-4 flex flex-wrap gap-2">
@@ -734,8 +583,18 @@ export function CabinetPanel(props: {
                   Barchani bitta PDF da yuklash
                 </button>
                 <span className="self-center text-[11px] text-[var(--color-text-muted)]">
-                  F.I.Sh, guruhi, telefon, manzil, fakultet, ichki arxiv — bitta PDF faylga; pasport, avatar va boshqa
-                  yuklangan PDF/rasmlar oxirida qoʻshiladi. Fayl nomida talabaning ismi yoziladi.
+                  {adminContactEditable ? (
+                    <>
+                      F.I.Sh, guruhi, telefon, manzil, fakultet, ichki arxiv yozuvlari — matn qismida; pasport, avatar,
+                      maʼlumotnoma PDF si va kabinet yutuqlarining ilovalari oxirida qoʻshiladi. OpenDocument fayllar uchun
+                      PDF da izoh sahifasi chiqadi. Fayl nomida talabaning ismi yoziladi.
+                    </>
+                  ) : (
+                    <>
+                      Pasport, avatar, kabinetdagi yutuqlar (sertifikat ilovalari) va boshqa PDF/rasmlar — bitta faylda.
+                      OpenDocument (.odt va hokazo) uchun PDF da izoh sahifasi chiqadi; asl faylni alohida saqlab qoling.
+                    </>
+                  )}
                 </span>
               </div>
             ) : null}
@@ -1214,8 +1073,18 @@ export function CabinetPanel(props: {
                       Yakuniy maʼlumotnoma (PDF)
                     </p>
                     <p className="mt-1 text-[11px] leading-snug text-[var(--color-text-muted)]">
-                      Barcha toʻldirilgan shaxsiy maʼlumotlar toʻplamini bir faylda saqlamoqchi boʻlsangiz, bitta PDF
-                      yuklang. Administrator uni shu tugma orqali toʻliq yuklab oladi.
+                      {urls.dataExport ? (
+                        <>
+                          Butun kabinetni (matnlar, avatar, pasport, maʼlumotnoma va ichki arxiv ilovalari) bitta PDF da
+                          olish uchun yuqoridagi «Barchani bitta PDF da yuklash»dan foydalaning. Bu yerda esa faqat
+                          alohida maʼlumotnoma PDF ini yuklaysiz yoki olasiz.
+                        </>
+                      ) : (
+                        <>
+                          Barcha toʻldirilgan shaxsiy maʼlumotlar toʻplamini bir faylda saqlamoqchi boʻlsangiz, bitta PDF
+                          yuklang. Administrator uni shu tugma orqali toʻliq yuklab oladi.
+                        </>
+                      )}
                     </p>
                     <div className="mt-3 flex flex-col gap-2">
                       {payload.profile.cabinetSummaryPdfPath ? (
@@ -1268,255 +1137,6 @@ export function CabinetPanel(props: {
                 </div>
               </div>
             </div>
-          </section>
-
-          <section className="space-y-6">
-            <div>
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <h2 className="font-display text-xl font-bold text-[var(--color-text)]">
-                  Ichki yutuqlar arxivi
-                </h2>
-                <button
-                  type="button"
-                  onClick={() => setAddOpen((x) => !x)}
-                  className="rounded-xl border border-teal-500/50 bg-teal-500/10 px-4 py-2 text-sm font-semibold text-[var(--color-text)]"
-                >
-                  {addOpen ? 'Formani yashirish' : '+ Yozuv qo‘shish'}
-                </button>
-              </div>
-              <p className="mt-2 max-w-3xl text-xs text-[var(--color-text-muted)]">
-                Bu ro‘yxat faqat kabinetda — umumiy reyting va moderator tasdig‘isiz. Reyting uchun materiallarni «Yuklash»
-                bo‘limidan yuboring.
-              </p>
-            </div>
-
-            {addOpen ? (
-              <form
-                onSubmit={(e) => void createAchSubmit(e)}
-                className="rounded-[1.25rem] border border-dashed border-teal-500/35 bg-teal-500/5 p-5 space-y-3"
-              >
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div>
-                    <label className="mb-1 block text-xs uppercase text-[var(--color-text-muted)]">Tur</label>
-                    <select
-                      className={inputClass}
-                      value={addForm.category}
-                      onChange={(e) =>
-                        setAddForm({ ...addForm, category: e.target.value as CabinetCategory })
-                      }
-                    >
-                      {CABINET_CATEGORY_ORDER.map((c) => (
-                        <option key={c} value={c}>
-                          {cabinetCategoryLabelUz(c)}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-xs uppercase text-[var(--color-text-muted)]">Sana</label>
-                    <input
-                      type="date"
-                      required
-                      className={inputClass}
-                      value={addForm.achievedAt}
-                      onChange={(e) => setAddForm({ ...addForm, achievedAt: e.target.value })}
-                    />
-                  </div>
-                </div>
-                {addForm.category === 'CERTIFICATE_LANG' ? (
-                  <div>
-                    <label className="mb-1 block text-xs uppercase text-[var(--color-text-muted)]">
-                      Til (masalan ingliz yoki rus)
-                    </label>
-                    <input
-                      className={inputClass}
-                      placeholder="Ingliz tili"
-                      value={addForm.certificateLanguage}
-                      onChange={(e) =>
-                        setAddForm({ ...addForm, certificateLanguage: e.target.value })
-                      }
-                    />
-                  </div>
-                ) : null}
-                <div>
-                  <label className="mb-1 block text-xs uppercase text-[var(--color-text-muted)]">Nomi</label>
-                  <input required className={inputClass} value={addForm.title} onChange={(e) => setAddForm({ ...addForm, title: e.target.value })} />
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs uppercase text-[var(--color-text-muted)]">Tavsif</label>
-                  <textarea
-                    className={`${inputClass} min-h-[88px] resize-y`}
-                    value={addForm.description}
-                    onChange={(e) => setAddForm({ ...addForm, description: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs uppercase text-[var(--color-text-muted)]">
-                    Fayl / rasm (ixtiyoriy)
-                  </label>
-                  <input
-                    type="file"
-                    accept="application/pdf,image/jpeg,image/png,image/webp"
-                    className={nativeFileInputClass}
-                    onChange={(e) => setNewAttach(e.target.files?.[0] ?? null)}
-                  />
-                  {newAttach ? (
-                    <p className="mt-1 break-all text-xs font-medium text-[var(--color-text)]">
-                      {newAttach.name}
-                    </p>
-                  ) : null}
-                </div>
-                <button type="submit" className="rounded-xl bg-teal-600 px-5 py-2 text-sm font-semibold text-white">
-                  Saqlash
-                </button>
-              </form>
-            ) : null}
-
-            {grouped.map(({ cat, rows }) => (
-              <div
-                key={cat}
-                className="rounded-[1.25rem] border border-[var(--color-border-subtle)] bg-[var(--color-bg-card)]/95 p-5"
-              >
-                <h3 className="font-display text-lg font-semibold text-[var(--color-text)]">
-                  {cabinetCategoryLabelUz(cat)}
-                </h3>
-                {rows.length === 0 ? (
-                  <p className="mt-3 text-sm text-[var(--color-text-muted)]">Hali yozuv yo‘q.</p>
-                ) : (
-                  <ul className="mt-4 space-y-4">
-                    {rows.map((row) =>
-                      editId === row.id ? (
-                        <li
-                          key={row.id}
-                          className="rounded-xl border border-teal-500/30 bg-teal-500/5 p-4 space-y-3"
-                        >
-                          <div className="grid gap-3 sm:grid-cols-2">
-                            <div>
-                              <label className="mb-1 block text-xs uppercase text-[var(--color-text-muted)]">Tur</label>
-                              <select
-                                className={inputClass}
-                                value={editForm.category}
-                                onChange={(e) =>
-                                  setEditForm({ ...editForm, category: e.target.value as CabinetCategory })
-                                }
-                              >
-                                {CABINET_CATEGORY_ORDER.map((c) => (
-                                  <option key={c} value={c}>
-                                    {cabinetCategoryLabelUz(c)}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-                            <div>
-                              <label className="mb-1 block text-xs uppercase text-[var(--color-text-muted)]">Sana</label>
-                              <input
-                                type="date"
-                                className={inputClass}
-                                value={editForm.achievedAt}
-                                onChange={(e) => setEditForm({ ...editForm, achievedAt: e.target.value })}
-                              />
-                            </div>
-                          </div>
-                          {editForm.category === 'CERTIFICATE_LANG' ? (
-                            <div>
-                              <label className="mb-1 block text-xs uppercase text-[var(--color-text-muted)]">Til</label>
-                              <input
-                                className={inputClass}
-                                value={editForm.certificateLanguage}
-                                onChange={(e) =>
-                                  setEditForm({ ...editForm, certificateLanguage: e.target.value })
-                                }
-                              />
-                            </div>
-                          ) : null}
-                          <div>
-                            <label className="mb-1 block text-xs uppercase text-[var(--color-text-muted)]">Nomi</label>
-                            <input
-                              className={inputClass}
-                              value={editForm.title}
-                              onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
-                            />
-                          </div>
-                          <div>
-                            <label className="mb-1 block text-xs uppercase text-[var(--color-text-muted)]">Tavsif</label>
-                            <textarea
-                              className={`${inputClass} min-h-[80px]`}
-                              value={editForm.description}
-                              onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                            />
-                          </div>
-                          <div className="flex flex-wrap gap-2">
-                            <button
-                              type="button"
-                              onClick={() => void saveEditAch()}
-                              className="rounded-xl bg-teal-600 px-4 py-2 text-xs font-semibold text-white"
-                            >
-                              Tayyor
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setEditId(null)}
-                              className="rounded-xl border border-[var(--color-border-subtle)] px-4 py-2 text-xs"
-                            >
-                              Bekor
-                            </button>
-                          </div>
-                        </li>
-                      ) : (
-                        <li key={row.id} className="rounded-xl border border-[var(--color-border-subtle)]/70 p-4">
-                          <p className="font-semibold text-[var(--color-text)]">{row.title}</p>
-                          {row.category === 'CERTIFICATE_LANG' && row.certificateLanguage ? (
-                            <p className="mt-1 text-xs text-teal-300/90">
-                              Til: {row.certificateLanguage}
-                            </p>
-                          ) : null}
-                          <p className="mt-1 text-xs text-[var(--color-text-muted)]">{row.achievedAt}</p>
-                          {row.description ? (
-                            <p className="mt-3 whitespace-pre-wrap text-sm text-[var(--color-text-muted)]">
-                              {row.description}
-                            </p>
-                          ) : null}
-                          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-                            {row.filePath ? (
-                              <a
-                                href={apiUrl(row.filePath)}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-teal-400 underline-offset-4 hover:underline"
-                              >
-                                Faylni ochish
-                              </a>
-                            ) : (
-                              <span className="text-[var(--color-text-muted)]">Fayl yo‘q</span>
-                            )}
-                            <label className={filePickTriggerLabelClass}>
-                              Fayl almashtirish
-                              <input
-                                type="file"
-                                accept="application/pdf,image/jpeg,image/png,image/webp"
-                                className="hidden"
-                                onChange={(e) => void replaceFileAch(row.id, e.target.files?.[0] ?? null)}
-                              />
-                            </label>
-                            {row.filePath ? (
-                              <button type="button" className="text-amber-300/90" onClick={() => void removeFileAch(row.id)}>
-                                Faylni olib tashlash
-                              </button>
-                            ) : null}
-                            <button type="button" className="text-[var(--color-accent-strong)]" onClick={() => startEdit(row)}>
-                              Tahrirlash
-                            </button>
-                            <button type="button" className="text-red-300" onClick={() => void deleteAch(row.id)}>
-                              O‘chirish
-                            </button>
-                          </div>
-                        </li>
-                      ),
-                    )}
-                  </ul>
-                )}
-              </div>
-            ))}
           </section>
         </>
       ) : (
