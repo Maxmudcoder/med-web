@@ -142,7 +142,7 @@ export function AdminAppealsPage() {
         Ball shikoyatlari
       </h1>
       <p className="mb-6 max-w-2xl text-sm text-[var(--color-text-muted)]">
-        Talabalar tasdiqlangan materiāl uchun yuborgan yakuniy ball haqidagi shikoyatlar (bir material uchun alohida{' '}
+        Talabalar tasdiqlangan material uchun yuborgan yakuniy ball haqidagi shikoyatlar (bir material uchun alohida{' '}
         <span className="tabular-nums text-[var(--color-text)]">{MAX_APPEALS_PER_SUBMISSION}</span> tagacha yozuv boʻlishi
         mumkin). Har bir qator uchun alohida javob yoziladi; javob chiqgach talabaga bildirishnoma boradi.
         {gradingDefaults ? (
@@ -155,7 +155,7 @@ export function AdminAppealsPage() {
             <span className="tabular-nums text-[var(--color-text)]">{gradingDefaults.sportPoints}</span>, tadbir —{' '}
             <span className="tabular-nums text-[var(--color-text)]">{gradingDefaults.eventPoints}</span>, volontyorlik —{' '}
             <span className="tabular-nums text-[var(--color-text)]">{gradingDefaults.volunteeringPoints}</span>. Bitta
-            materiāl uchun yakuniy yuqori cheklov —{' '}
+            material uchun yakuniy yuqori cheklov —{' '}
             <span className="tabular-nums text-[var(--color-text)]">{gradingDefaults.maxPointsPerSubmission}</span>.
           </>
         ) : null}

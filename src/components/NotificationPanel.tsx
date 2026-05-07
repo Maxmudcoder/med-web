@@ -170,7 +170,7 @@ export function NotificationPanel({ variant = 'toolbar' }: NotificationPanelProp
       window.scrollTo({ top: 0, behavior: 'smooth' })
       placeMenu()
       setOpen(true)
-      void load()
+      if (user?.role !== 'STUDENT') void load()
     }
     window.addEventListener(OPEN_EVENT, onExternalOpen)
     window.addEventListener(OPEN_EVENT_LEGACY, onExternalOpen)
@@ -178,7 +178,7 @@ export function NotificationPanel({ variant = 'toolbar' }: NotificationPanelProp
       window.removeEventListener(OPEN_EVENT, onExternalOpen)
       window.removeEventListener(OPEN_EVENT_LEGACY, onExternalOpen)
     }
-  }, [load, placeMenu])
+  }, [load, placeMenu, user?.role])
 
   useEffect(() => {
     if (!open) return
@@ -191,6 +191,30 @@ export function NotificationPanel({ variant = 'toolbar' }: NotificationPanelProp
       window.removeEventListener('scroll', sync, true)
     }
   }, [open, placeMenu])
+
+  /** Talaba qoʻngʻiroqchani ochganda barcha xabarlarni oʻqilgan qilib, raqam yo‘qoladi (admin → talaba). */
+  useEffect(() => {
+    if (!open || user?.role !== 'STUDENT' || !token) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        await fetchAuthJson('/api/notifications/read-all', token, { method: 'POST' })
+        if (!cancelled) {
+          prevUnread.current = 0
+          setUnread(0)
+          setItems((prev) =>
+            prev.map((it) => (it.readAt ? it : { ...it, readAt: new Date().toISOString() })),
+          )
+          void load()
+        }
+      } catch {
+        /* yondashuv davom etadi — keyingi polling tuzatadi */
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [open, token, user?.role, load])
 
   useEffect(() => {
     if (!open) return
@@ -373,7 +397,7 @@ export function NotificationPanel({ variant = 'toolbar' }: NotificationPanelProp
                 setStudentToast(null)
                 placeMenu()
                 setOpen(true)
-                void load()
+                if (user?.role !== 'STUDENT') void load()
               }}
             >
               <p className="text-xs font-semibold uppercase tracking-wide text-amber-400/95">
@@ -398,10 +422,12 @@ export function NotificationPanel({ variant = 'toolbar' }: NotificationPanelProp
         onClick={(e) => {
           e.stopPropagation()
           if (!open) placeMenu()
-          setOpen((v) => !v)
+          const opening = !open
+          setOpen(opening)
+          if (opening && user?.role === 'STUDENT') return
           void load()
         }}
-        className={`relative flex ${bellBox} shrink-0 items-center justify-center rounded-xl border bg-[var(--color-bg-card)] transition ${unreadOutline} ${
+        className={`relative flex ${bellBox} shrink-0 touch-manipulation items-center justify-center rounded-xl border bg-[var(--color-bg-card)] transition ${unreadOutline} ${
           ring
             ? 'animate-pulse ring-2 ring-teal-400 ring-offset-2 ring-offset-[var(--color-bg-deep)]'
             : ''

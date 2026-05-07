@@ -53,17 +53,10 @@ type Snapshot = {
   }>
 }
 
-type Briefing = {
-  text: string
-  openai?: boolean
-}
-
 export function AdminDashboardPage() {
   const { token } = useAuth()
   const [snap, setSnap] = useState<Snapshot | null>(null)
   const [loading, setLoading] = useState(true)
-  const [briefing, setBriefing] = useState<Briefing | null>(null)
-  const [briefingLoading, setBriefingLoading] = useState(false)
 
   const load = useCallback(async () => {
     if (!token) return
@@ -78,26 +71,9 @@ export function AdminDashboardPage() {
     }
   }, [token])
 
-  const loadBriefing = useCallback(async () => {
-    if (!token) return
-    setBriefingLoading(true)
-    try {
-      const data = await fetchAuthJson<Briefing>('/api/admin/dashboard/briefing', token)
-      setBriefing(data)
-    } catch {
-      setBriefing(null)
-    } finally {
-      setBriefingLoading(false)
-    }
-  }, [token])
-
   useEffect(() => {
     void load()
   }, [load])
-
-  useEffect(() => {
-    void loadBriefing()
-  }, [loadBriefing])
 
   const stats = snap?.stats
 
@@ -163,20 +139,22 @@ export function AdminDashboardPage() {
             Boshqaruv paneli
           </h1>
           <p className="mt-2 max-w-xl text-[var(--color-text-muted)]">
-            Talabalar, reyting, e‘lonlar va aloqa — asosiy koʻrsatkichlar. AI xulosa: oxirgi yuklamalar, navbatdagilar,
-            tasdiqlangan ballar va yangi talabalar roʻyxati; sayt tuzilishi haqidagi gaplar qoʻshilmagan (OpenAI
-            boʻlmaganda ham shu faktlar roʻyxati chiqadi).
-            Ochiq sahifada kartalar uchun{' '}
+            Talabalar, reyting, e‘lonlar, ball shikoyatlari va aloqa — asosiy koʻrsatkichlar. Moderatsiya va ball berish
+            uchun{' '}
+            <Link to="/admin/baholash" className="font-semibold text-teal-400 underline">
+              Baholash
+            </Link>
+            ; shikoyatlar —{' '}
+            <Link to="/admin/shikoyatlar" className="font-semibold text-teal-400 underline">
+              Ball shikoyatlari
+            </Link>
+            . Ochiq sahifa kartalari —{' '}
             <Link to="/admin/oqituvchilar" className="font-semibold text-teal-400 underline">
               O‘qituvchilar
             </Link>{' '}
-            boʻlimi hamda boshqa aloqa sozlamalari —{' '}
+            va{' '}
             <Link to="/admin/sozlamalar" className="font-semibold text-teal-400 underline">
               Sayt sozlamalari
-            </Link>
-            . Batafsil savollar —{' '}
-            <Link to="/admin/ai-yordamchi" className="font-semibold text-teal-400 underline">
-              AI yordamchi
             </Link>
             .
           </p>
@@ -189,45 +167,15 @@ export function AdminDashboardPage() {
         </div>
         <button
           type="button"
-          disabled={loading || !token || briefingLoading}
+          disabled={loading || !token}
           onClick={() => {
             void load()
-            void loadBriefing()
           }}
           className="self-start rounded-xl border border-[var(--color-border-subtle)] px-4 py-2 text-sm text-[var(--color-text)] transition hover:bg-white/5 disabled:opacity-40 sm:self-auto"
         >
           Yangilash
         </button>
       </div>
-
-      <section
-        className="relative overflow-hidden rounded-[1.5rem] border border-violet-500/35 bg-gradient-to-br from-violet-950/35 via-[var(--color-bg-card)] to-teal-950/20 p-6 shadow-xl"
-        aria-labelledby="admin-ai-briefing"
-      >
-        <div className="pointer-events-none absolute -right-16 top-0 h-40 w-40 rounded-full bg-violet-500/15 blur-3xl" />
-        <div className="relative">
-          <h2 id="admin-ai-briefing" className="font-display text-lg font-bold text-[var(--color-text)]">
-            Materiāllar va baholar boʻyicha xulosa
-          </h2>
-          <p className="mt-1 text-xs text-[var(--color-text-muted)]">
-            Yuklangan ishlar va berilgan baholar hamda yangi talabalar; qisqa tavsiyalar.{' '}
-            {briefing?.openai === false
-              ? '(OpenAI kaliti yoʻq — faqat roʻyxat matni.)'
-              : briefing?.openai
-                ? '(OpenAI yordamida matn.)'
-                : null}
-          </p>
-          {briefingLoading ? (
-            <p className="mt-4 animate-pulse text-sm text-[var(--color-text-muted)]">Hisobot yozilmoqda…</p>
-          ) : briefing?.text ? (
-            <div className="mt-4 max-h-[min(38rem,70vh)] overflow-y-auto whitespace-pre-wrap text-sm leading-relaxed text-[var(--color-text)]">
-              {briefing.text}
-            </div>
-          ) : (
-            <p className="mt-4 text-sm text-rose-300/90">Hisobotni yuklab boʻlmadi — «Yangilash» tugmasidan foydalaning.</p>
-          )}
-        </div>
-      </section>
 
       {loading ? (
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -299,13 +247,17 @@ export function AdminDashboardPage() {
                   snap.sluggishStudents.map((s) => (
                     <li
                       key={s.userId}
-                      className="flex justify-between gap-2 rounded-lg border border-[var(--color-border-subtle)]/60 px-3 py-2"
+                      className="flex flex-col gap-2 rounded-lg border border-[var(--color-border-subtle)]/60 px-3 py-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3"
                     >
-                      <span className="text-[var(--color-text)]">
+                      <span className="min-w-0 text-[var(--color-text)]">
                         {s.fullName}{' '}
-                        <span className="text-xs text-[var(--color-text-muted)]">({s.login})</span>
+                        <span className="block text-xs text-[var(--color-text-muted)] sm:inline">
+                          ({s.login})
+                        </span>
                       </span>
-                      <span className="tabular-nums text-amber-200/90">{s.totalPoints} bp</span>
+                      <span className="shrink-0 tabular-nums font-medium text-amber-200/90 sm:text-right">
+                        {s.totalPoints} bp
+                      </span>
                     </li>
                   ))
                 )}
@@ -322,10 +274,10 @@ export function AdminDashboardPage() {
                   <span className="text-[var(--color-text-muted)]"> — materiallarni ko‘rib chiqish va ball berish</span>
                 </li>
                 <li>
-                  <Link className="font-medium text-teal-400 hover:underline" to="/admin/ai-yordamchi">
-                    AI yordamchi
+                  <Link className="font-medium text-teal-400 hover:underline" to="/admin/shikoyatlar">
+                    Ball shikoyatlari
                   </Link>
-                  <span className="text-[var(--color-text-muted)]"> — tizim va jarayonlar bo‘yicha yordam</span>
+                  <span className="text-[var(--color-text-muted)]"> — talaba shikoyatlarini ko‘rib chiqish</span>
                 </li>
                 <li>
                   <Link className="font-medium text-teal-400 hover:underline" to="/admin/elonlar">
@@ -355,11 +307,11 @@ export function AdminDashboardPage() {
                   snap.recentApproved.slice(0, 10).map((r) => (
                     <li
                       key={r.id}
-                      className="flex justify-between gap-2 border-b border-[var(--color-border-subtle)]/60 py-2 last:border-0"
+                      className="flex flex-col gap-1 border-b border-[var(--color-border-subtle)]/60 py-2 last:border-0 sm:flex-row sm:items-start sm:justify-between sm:gap-3"
                     >
-                      <span className="min-w-0 truncate text-[var(--color-text)]">{r.title}</span>
-                      <span className="shrink-0 text-xs text-teal-300">
-                        +{r.points ?? '?'} · {r.studentName}
+                      <span className="min-w-0 text-[var(--color-text)]">{r.title}</span>
+                      <span className="shrink-0 text-xs text-teal-300 sm:text-right">
+                        +{r.points ?? '?'} · <span className="break-words">{r.studentName}</span>
                       </span>
                     </li>
                   ))

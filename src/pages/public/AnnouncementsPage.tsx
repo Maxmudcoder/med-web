@@ -1,6 +1,7 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { apiUrl, fetchPublicJson } from '@/lib/api'
+import { fetchPublicJson } from '@/lib/api'
+import { publicFileUrl } from '@/lib/stickerSrc'
 import { PromoAccent, type AnnouncementItem } from '@/pages/public/publicUi'
 
 export function AnnouncementsPage() {
@@ -158,7 +159,7 @@ export function AnnouncementsPage() {
               >
                 {p.imagePath ? (
                   <img
-                    src={apiUrl(p.imagePath)}
+                    src={publicFileUrl(p.imagePath)}
                     alt=""
                     className="absolute inset-0 h-full w-full object-cover"
                   />

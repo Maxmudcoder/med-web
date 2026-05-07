@@ -1,8 +1,9 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet } from 'react-router-dom'
-import { MedAssistantChat } from '@/components/MedAssistantChat'
 import { PublicNotificationsBell } from '@/components/PublicNotificationsBell'
 import { ThemeToggle } from '@/components/ThemeToggle'
+import { fetchPublicJson } from '@/lib/api'
+import { DEFAULT_PUBLIC_BRANDING, type PublicBranding } from '@/lib/publicBranding'
 
 function navInactiveClass(drawer?: boolean) {
   return drawer
@@ -31,7 +32,27 @@ export function PublicLayout() {
   const headerRef = useRef<HTMLElement | null>(null)
   const [mobileSheetTop, setMobileSheetTop] = useState(76)
   const [menuOpen, setMenuOpen] = useState(false)
-  const [aiOpen, setAiOpen] = useState(false)
+  const [branding, setBranding] = useState<PublicBranding>(DEFAULT_PUBLIC_BRANDING)
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const data = await fetchPublicJson<PublicBranding>('/api/public/branding')
+        if (!cancelled) setBranding(data)
+      } catch {
+        /* default */
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    const t = `${branding.siteName} — ${branding.siteTagline}`
+    document.title = t.length > 120 ? `${branding.siteName}` : t
+  }, [branding.siteName, branding.siteTagline])
 
   const syncSheetTop = () => setMobileSheetTop(headerBottomPx(headerRef.current))
 
@@ -75,10 +96,10 @@ export function PublicLayout() {
             </span>
             <div className="min-w-0 text-left leading-tight">
               <span className="font-display block truncate text-base font-bold tracking-tight text-[var(--color-text)] transition group-hover:text-teal-400 sm:text-lg">
-                Med-Iqtidor
+                {branding.siteName}
               </span>
               <span className="hidden truncate text-xs font-medium text-[var(--color-text-muted)] sm:block">
-                Tibbiyot kadrlar uchun reyting va sertifikatlar tizimi
+                {branding.siteTagline}
               </span>
             </div>
           </Link>
@@ -200,26 +221,9 @@ export function PublicLayout() {
         <Outlet />
       </main>
 
-      <button
-        type="button"
-        onClick={() => setAiOpen(true)}
-        className="fixed bottom-[max(1.25rem,env(safe-area-inset-bottom))] right-[max(1.25rem,env(safe-area-inset-right))] z-[85] flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-teal-500 to-emerald-700 text-white shadow-lg shadow-teal-500/40 transition hover:brightness-110 active:scale-[0.97] sm:bottom-8 sm:right-8"
-        aria-label="Maslahatchi chat"
-      >
-        <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
-          />
-        </svg>
-      </button>
-      <MedAssistantChat open={aiOpen} onClose={() => setAiOpen(false)} variant="public" />
-
       <footer className="public-page border-t border-[var(--color-border-subtle)] bg-[var(--color-bg-deep)]/40 py-6 backdrop-blur-md sm:py-7">
         <div className="mx-auto max-w-6xl px-4 text-center text-xs leading-relaxed text-[var(--color-text-muted)] sm:px-6">
-          © {new Date().getFullYear()} Med-Iqtidor · Tibbiyot kadrlar platformasi
+          {branding.footerLine}
         </div>
       </footer>
     </div>

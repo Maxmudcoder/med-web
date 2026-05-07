@@ -173,7 +173,7 @@ export function StudentAppealsPage() {
                 {showAppealUi && r.aiLegitimacyVerdict ? (
                   <div className="mt-3 flex flex-wrap items-center gap-2">
                     <span className="text-[10px] font-bold uppercase text-[var(--color-text-muted)]">
-                      AI qonuniylik
+                      Tekshiruv holati
                     </span>
                     {(() => {
                       const lb = submissionLegitBadge(r.aiLegitimacyVerdict)

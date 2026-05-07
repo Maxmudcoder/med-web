@@ -64,9 +64,6 @@ export function StudentUploadPage() {
       })
       const data = (await res.json()) as {
         error?: string
-        aiSuggestedPoints?: number | null
-        aiAssessment?: string | null
-        aiScoreUsedOpenAi?: boolean
         adminNotified?: boolean
         adminRecipients?: number
       }
@@ -80,19 +77,6 @@ export function StudentUploadPage() {
         bits.push(
           ' Ogohlantirish: tizimda faol administrator akkaunti yoʻq — «Baholash» navbatiga qaramay, kimdir kirishi kerak.',
         )
-      }
-      if (data.aiScoreUsedOpenAi === false) {
-        bits.push(
-          ' Diqqat: serverda GPT kaliti ishlamayotgani uchun ball tavsiyasi hozircha taxminiy — administrator «AI qayta hisoblash» orqali haqiqiy tahlil olishi kerak.',
-        )
-      }
-      if (data.aiSuggestedPoints != null) {
-        bits.push(
-          ` Taxminiy tavsiya balli (yakuniy emas): ${data.aiSuggestedPoints}. Yakuniy ballni administrator belgilaydi.`,
-        )
-      }
-      if (data.aiAssessment?.trim()) {
-        bits.push(` Qisqa tekshuv: ${data.aiAssessment.trim()}`)
       }
       setMsg({ ok: true, text: bits.join('') })
       setStudentStory('')
@@ -115,12 +99,12 @@ export function StudentUploadPage() {
   return (
     <div className="mx-auto w-full min-w-0 max-w-lg">
       <h1 className="mb-2 text-xl font-bold text-[var(--color-text)] sm:text-2xl">
-        Talaba baholashi — materiāl yuklash
+        Talaba baholashi — material yuklash
       </h1>
       <p className="mb-4 text-sm text-[var(--color-text-muted)]">
         Nizom: har bir taʼsir yoʻnalishi uchun bitta tasdiqlangan material — <strong className="text-[var(--color-text)]">0–10 ball</strong>{' '}
         oralig‘ida. Oʻn yoʻnalish boʻyicha jami reyting maksimumi <strong className="text-[var(--color-text)]">100 ball</strong>. Tur, ilmiy
-        rahbar va matnlar AI tahlili hamda moderator tekshiruviga uzatiladi.
+        rahbar va yozma maʼlumotlaringiz moderator tekshiruviga uzatiladi.
       </p>
       <form
         onSubmit={onSubmit}
@@ -149,7 +133,7 @@ export function StudentUploadPage() {
                 onChange={(e) => setArticleJournalTier(e.target.value as 'REPUBLIC' | 'INTERNATIONAL')}
                 className="w-full rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-bg-deep)] px-4 py-3 text-[var(--color-text)]"
               >
-                <option value="REPUBLIC">Respublika jurnali (bitta maqola: maks. 10 ball; nizomda xalqarodan pastroq tayanch)</option>
+                <option value="REPUBLIC">Respublika jurnali (bitta maqola: maks. 10 ball; nizomda xalqarosidan pastroq tayanch)</option>
                 <option value="INTERNATIONAL">Xalqaro jurnal (bitta maqola: maks. 10 ball; nizomda yuqoriroq tayanch)</option>
               </select>
             </div>
@@ -210,8 +194,7 @@ export function StudentUploadPage() {
             className="w-full rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-bg-deep)] px-4 py-3 text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] placeholder:opacity-80"
           />
           <p className="mt-1 text-xs text-[var(--color-text-muted)]">
-            Alternativa: kamida 4 belgi yozmasdan, faqat aniq «Sarlavha» va «Tashkilot» bilan yuboring — AI oʻsha asosda
-            toʻliq matn tuzadi.
+            Alternativa: kamida 4 belgi yozmasdan, faqat aniq «Sarlavha» va «Tashkilot» bilan ham yuborishingiz mumkin.
           </p>
         </div>
         <div>
@@ -247,7 +230,7 @@ export function StudentUploadPage() {
           />
           <p className="mt-1 text-xs text-[var(--color-text-muted)]">
             Sertifikat, maqola, konferensiya va boshqa turlar uchun ilmiy rahbarni oʻzingiz yozasiz; mazkur maʼlumot
-            bazada saqlanadi, rasmiy izoh va AI ball tahliliga qoʻshimcha sifatida uzatiladi.
+            bazada saqlanadi va moderator uchun qoʻshimcha kontekst sifatida uzatiladi.
           </p>
         </div>
         <div>
@@ -262,7 +245,7 @@ export function StudentUploadPage() {
         </div>
         <div>
           <label className="mb-1 block text-sm text-[var(--color-text-muted)]">
-            Qo‘shimcha izoh (ixtiyoriy; AI umumiy matnga qoʻshib rasmiy „note“ga aylantirishi mumkin)
+            Qo‘shimcha izoh (ixtiyoriy; kerak boʻlsa moderator rasmiy „note“ sifatida koʻradi)
           </label>
           <textarea
             value={legacyNote}

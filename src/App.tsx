@@ -14,7 +14,6 @@ import { ContactPage } from '@/pages/public/ContactPage'
 import { PublicPortfolioPage } from '@/pages/public/PublicPortfolioPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { AdminDashboardPage } from '@/pages/admin/AdminDashboardPage'
-import { AdminAIAssistantPage } from '@/pages/admin/AdminAIAssistantPage'
 import { AdminStudentsPage } from '@/pages/admin/AdminStudentsPage'
 import { AdminStudentCabinetPage } from '@/pages/admin/AdminStudentCabinetPage'
 import { AdminModerationPage } from '@/pages/admin/AdminModerationPage'
@@ -60,7 +59,7 @@ export default function App() {
                 <Route path="moderatsiya" element={<Navigate to="/admin/baholash" replace />} />
                 <Route path="baholash" element={<AdminModerationPage />} />
                 <Route path="shikoyatlar" element={<AdminAppealsPage />} />
-                <Route path="ai-yordamchi" element={<AdminAIAssistantPage />} />
+                <Route path="ai-yordamchi" element={<Navigate to="/admin" replace />} />
                 <Route path="elonlar" element={<AdminAnnouncementsPage />} />
                 <Route path="talaba-xabar" element={<AdminStudentMessagePage />} />
                 <Route path="xabarlar" element={<AdminContactMessagesPage />} />

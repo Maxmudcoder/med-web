@@ -4,7 +4,7 @@ import { apiUrl, fetchAuthForm, fetchAuthJson } from '@/lib/api'
 import { decodeUzAddress, encodeUzAddress, type UzAddrPayload } from '@/lib/uzAddressCodec'
 import { getUzAddressHierarchy, tumanIdToMfyFileSlug, type UzViloyat } from '@/lib/uzGeoHierarchy'
 import { loadMahallaOptionsForTuman } from '@/lib/loadUzMahallaOptions'
-import { AvatarCircleCover } from '@/components/AvatarCircleCover'
+import { AuthedAvatarCircleCover } from '@/components/AuthedAvatarCircleCover'
 import { filePickTriggerLabelClass } from '@/lib/fileFieldStyles'
 
 export type CabinetFileKind = 'passport-front' | 'passport-back' | 'summary-pdf' | 'avatar'
@@ -16,8 +16,9 @@ export type CabinetEndpoints = {
   passportFront: string
   passportBack: string
   cabinetFile: (kind: CabinetFileKind) => string
-  summaryPdfPost: string
-  summaryPdfDelete: string
+  /** Bo‘lmasa talaba rejimida: maʼlumotnoma faqat ko‘rinadi / yuklab olinadi. */
+  summaryPdfPost?: string
+  summaryPdfDelete?: string
   /** Admin: toʻliq kabinet — bitta PDF (matn + rasmlar/skannlar birlashtirilgan). */
   dataExport?: string
 }
@@ -420,13 +421,13 @@ export function CabinetPanel(props: {
   }
 
   async function uploadCabinetSummaryPdfFile(file: File | null) {
-    if (!token || !file) return
+    if (!token || !file || !urls.summaryPdfPost) return
     setSummaryPdfBusy(true)
     setErr('')
     const fd = new FormData()
     fd.append('file', file)
     try {
-      const data = await fetchAuthForm<CabinetPayload>(urls.summaryPdfPost, token, fd)
+      const data = await fetchAuthForm<CabinetPayload>(urls.summaryPdfPost!, token, fd)
       setPayload(data)
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Xato')
@@ -436,11 +437,11 @@ export function CabinetPanel(props: {
   }
 
   async function removeCabinetSummaryPdf() {
-    if (!token || !confirm('Maʼlumotnoma PDF o‘chirilsinmi?')) return
+    if (!token || !urls.summaryPdfDelete || !confirm('Maʼlumotnoma PDF o‘chirilsinmi?')) return
     setSummaryPdfBusy(true)
     setErr('')
     try {
-      const data = await fetchAuthJson<CabinetPayload>(urls.summaryPdfDelete, token, { method: 'DELETE' })
+      const data = await fetchAuthJson<CabinetPayload>(urls.summaryPdfDelete!, token, { method: 'DELETE' })
       setPayload(data)
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Xato')
@@ -564,7 +565,7 @@ export function CabinetPanel(props: {
         <p className="text-[var(--color-text-muted)]">Yuklanmoqda…</p>
       ) : payload ? (
         <>
-          <section className="rounded-[1.25rem] border border-[var(--color-border-subtle)] bg-[var(--color-bg-card)] p-6">
+          <section className="rounded-[1.25rem] border border-[var(--color-border-subtle)] bg-[var(--color-bg-card)] p-4 sm:p-6">
             <h2 className="font-display font-bold text-[var(--color-text)]">Shaxsiy maʼlumotlar</h2>
             <p className="mt-2 text-xs text-[var(--color-text-muted)]">
               Maʼlumotlar va fayllar faqat kabinetda saqlanadi (sayt boshqasiga chiqmaydi). Talaba oʻzi toʻldiradi va
@@ -622,8 +623,8 @@ export function CabinetPanel(props: {
                 <Link to="/talaba/yuklash" className="font-bold text-teal-400 underline underline-offset-2">
                   Yuklash
                 </Link>{' '}
-                sahifasidan yuboring — GPT tahlili va administrator tasdig‘idan keyin ball qo‘shiladi (standart ball «Sayt
-                sozlamalari»da tur bo‘yicha belgilanadi).
+                sahifasidan yuboring — moderator tasdig‘idan keyin ball qoʻshiladi (standart ball «Sayt sozlamalari»da tur bo‘yicha
+                belgilanadi).
               </p>
             ) : null}
 
@@ -935,8 +936,10 @@ export function CabinetPanel(props: {
                 <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 xl:gap-8">
                   <div className="min-w-0 rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-bg-deep)]/80 p-4">
                     {payload.profile.avatarPath ? (
-                      <AvatarCircleCover
-                        src={apiUrl(payload.profile.avatarPath)}
+                      <AuthedAvatarCircleCover
+                        token={token}
+                        apiPath={urls.cabinetFile('avatar')}
+                        alt="Profil rasmi"
                         sizeClass="h-28 w-28"
                         ringClassName="border border-[var(--color-border-subtle)]"
                         className="bg-[var(--color-bg-deep)]"
@@ -976,8 +979,10 @@ export function CabinetPanel(props: {
                     </p>
                     <div className="mt-2 flex flex-wrap items-center gap-2">
                       {payload.profile.passportPhotoFrontPath && !pathLooksPdf(payload.profile.passportPhotoFrontPath) ? (
-                        <AvatarCircleCover
-                          src={apiUrl(payload.profile.passportPhotoFrontPath)}
+                        <AuthedAvatarCircleCover
+                          token={token}
+                          apiPath={urls.cabinetFile('passport-front')}
+                          alt="Pasport old"
                           sizeClass="h-14 w-14"
                           ringClassName="border border-[var(--color-border-subtle)]"
                         />
@@ -1025,8 +1030,10 @@ export function CabinetPanel(props: {
                     </p>
                     <div className="mt-2 flex flex-wrap items-center gap-2">
                       {payload.profile.passportPhotoBackPath && !pathLooksPdf(payload.profile.passportPhotoBackPath) ? (
-                        <AvatarCircleCover
-                          src={apiUrl(payload.profile.passportPhotoBackPath)}
+                        <AuthedAvatarCircleCover
+                          token={token}
+                          apiPath={urls.cabinetFile('passport-back')}
+                          alt="Pasport orqa"
                           sizeClass="h-14 w-14"
                           ringClassName="border border-[var(--color-border-subtle)]"
                         />
@@ -1073,16 +1080,23 @@ export function CabinetPanel(props: {
                       Yakuniy maʼlumotnoma (PDF)
                     </p>
                     <p className="mt-1 text-[11px] leading-snug text-[var(--color-text-muted)]">
-                      {urls.dataExport ? (
-                        <>
-                          Butun kabinetni (matnlar, avatar, pasport, maʼlumotnoma va ichki arxiv ilovalari) bitta PDF da
-                          olish uchun yuqoridagi «Barchani bitta PDF da yuklash»dan foydalaning. Bu yerda esa faqat
-                          alohida maʼlumotnoma PDF ini yuklaysiz yoki olasiz.
-                        </>
+                      {urls.summaryPdfPost ? (
+                        urls.dataExport ? (
+                          <>
+                            Butun kabinetni (matnlar, avatar, pasport, maʼlumotnoma va ichki arxiv ilovalari) bitta PDF da
+                            olish uchun yuqoridagi «Barchani bitta PDF da yuklash»dan foydalaning. Bu yerda esa faqat
+                            alohida maʼlumotnoma PDF ini yuklaysiz yoki olasiz.
+                          </>
+                        ) : (
+                          <>
+                            Barcha toʻldirilgan shaxsiy maʼlumotlar toʻplamini bir faylda saqlamoqchi boʻlsangiz, bitta PDF
+                            yuklang. Administrator uni shu tugma orqali toʻliq yuklab oladi.
+                          </>
+                        )
                       ) : (
                         <>
-                          Barcha toʻldirilgan shaxsiy maʼlumotlar toʻplamini bir faylda saqlamoqchi boʻlsangiz, bitta PDF
-                          yuklang. Administrator uni shu tugma orqali toʻliq yuklab oladi.
+                          Yakuniy maʼlumotnoma PDF ini faqat administrator yuklaydi yoki yangilaydi. Agar u siz uchun
+                          yuklangan boʻlsa, quyidagi faylni yuklab olishingiz mumkin.
                         </>
                       )}
                     </p>
@@ -1107,31 +1121,35 @@ export function CabinetPanel(props: {
                             >
                               Maʼlumotnomani yuklab olish
                             </button>
-                            <button
-                              type="button"
-                              disabled={summaryPdfBusy}
-                              onClick={() => void removeCabinetSummaryPdf()}
-                              className="rounded-lg border border-red-500/40 px-3 py-1.5 text-[11px] font-semibold text-red-200 transition hover:bg-red-500/15 disabled:opacity-40"
-                            >
-                              PDF ni o‘chirish
-                            </button>
+                            {urls.summaryPdfDelete ? (
+                              <button
+                                type="button"
+                                disabled={summaryPdfBusy}
+                                onClick={() => void removeCabinetSummaryPdf()}
+                                className="rounded-lg border border-red-500/40 px-3 py-1.5 text-[11px] font-semibold text-red-200 transition hover:bg-red-500/15 disabled:opacity-40"
+                              >
+                                PDF ni o‘chirish
+                              </button>
+                            ) : null}
                           </div>
                         </>
                       ) : (
                         <p className="text-[11px] text-[var(--color-text-muted)]">Hali PDF yuklanmagan.</p>
                       )}
-                      <label className={filePickTriggerLabelClass}>
-                        {summaryPdfBusy ? 'Kutilmoqda…' : 'PDF tanlash'}
-                        <input
-                          type="file"
-                          accept="application/pdf,.pdf"
-                          disabled={summaryPdfBusy}
-                          className="hidden"
-                          onChange={(e) =>
-                            void uploadCabinetSummaryPdfFile(e.target.files?.[0] ?? null)
-                          }
-                        />
-                      </label>
+                      {urls.summaryPdfPost ? (
+                        <label className={filePickTriggerLabelClass}>
+                          {summaryPdfBusy ? 'Kutilmoqda…' : 'PDF tanlash'}
+                          <input
+                            type="file"
+                            accept="application/pdf,.pdf"
+                            disabled={summaryPdfBusy}
+                            className="hidden"
+                            onChange={(e) =>
+                              void uploadCabinetSummaryPdfFile(e.target.files?.[0] ?? null)
+                            }
+                          />
+                        </label>
+                      ) : null}
                     </div>
                   </div>
                 </div>

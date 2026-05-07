@@ -14,9 +14,6 @@ type Row = {
   filePath: string
   createdAt: string
   scientificSupervisor?: string | null
-  aiScore?: number | null
-  aiSuggestedPoints?: number | null
-  aiAssessment?: string | null
 }
 
 const statusUz: Record<string, string> = {
@@ -119,22 +116,12 @@ export function StudentCertificatesPage() {
                   </span>
                   <span className="tabular-nums font-semibold text-teal-400">
                     {r.status === 'PENDING' ? (
-                      <>
-                        {r.aiSuggestedPoints != null ? `≈ ${r.aiSuggestedPoints}` : '—'}
-                        <span className="ml-1 font-normal text-[var(--color-text-muted)]">
-                          {r.points != null ? `· yakuniy ${r.points}` : '· yakuniy —'}
-                        </span>
-                      </>
+                      <span className="font-normal text-[var(--color-text-muted)]">Ball moderator tasdig‘idan keyin</span>
                     ) : (
                       <>{r.points ?? '—'} ball</>
                     )}
                   </span>
                 </div>
-                {r.status === 'PENDING' && r.aiAssessment?.trim() ? (
-                  <p className="mt-2 text-[11px] leading-snug text-[var(--color-text-muted)]">
-                    {r.aiAssessment.length > 160 ? `${r.aiAssessment.slice(0, 160)}…` : r.aiAssessment}
-                  </p>
-                ) : null}
                 <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
                   <a
                     href={apiUrl(r.filePath)}
@@ -163,9 +150,7 @@ export function StudentCertificatesPage() {
                   <tr className="border-b border-[var(--color-border-subtle)] bg-[var(--color-bg-deep)]/90">
                     <th className="px-5 py-4 font-semibold text-[var(--color-text-muted)]">Sarlavha</th>
                     <th className="px-5 py-4 font-semibold text-[var(--color-text-muted)]">Holat</th>
-                    <th className="px-5 py-4 font-semibold text-[var(--color-text-muted)]">
-                      Tavsiya va yakuniy ball
-                    </th>
+                    <th className="px-5 py-4 font-semibold text-[var(--color-text-muted)]">Ball</th>
                     <th className="px-5 py-4 font-semibold text-[var(--color-text-muted)]">Fayl</th>
                   </tr>
                 </thead>
@@ -190,25 +175,13 @@ export function StudentCertificatesPage() {
                       <td className="px-5 py-4">
                         <div className="tabular-nums font-semibold text-teal-400">
                           {r.status === 'PENDING' ? (
-                            <span title="Tasdiqdan oldingi avtomatik tavsiya">
-                              {r.aiSuggestedPoints != null ? `≈ ${r.aiSuggestedPoints}` : '—'}
-                              <span className="mt-1 block text-xs font-normal normal-case text-[var(--color-text-muted)]">
-                                {r.points != null
-                                  ? `Yakuniy: ${r.points}`
-                                  : 'Yakuniy ball — tasdiqdan keyin'}
-                              </span>
+                            <span className="block text-xs font-normal text-[var(--color-text-muted)]">
+                              Yakuniy ball moderator tasdig‘idan keyin
                             </span>
                           ) : (
                             <span>{r.points ?? '—'}</span>
                           )}
                         </div>
-                        {r.status === 'PENDING' && r.aiAssessment?.trim() ? (
-                          <p className="mt-2 max-w-xs text-[11px] leading-snug text-[var(--color-text-muted)]">
-                            {r.aiAssessment.length > 120
-                              ? `${r.aiAssessment.slice(0, 120)}…`
-                              : r.aiAssessment}
-                          </p>
-                        ) : null}
                       </td>
                       <td className="px-5 py-4">
                         <div className="flex flex-col gap-1.5">

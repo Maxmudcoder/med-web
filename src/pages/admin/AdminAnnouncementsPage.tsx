@@ -1,5 +1,6 @@
 import { type ChangeEvent, type FormEvent, useCallback, useEffect, useState } from 'react'
 import { fetchAuthJson, apiUrl } from '@/lib/api'
+import { publicFileUrl } from '@/lib/stickerSrc'
 import { AvatarCircleCover } from '@/components/AvatarCircleCover'
 import { useAuth } from '@/context/AuthContext'
 import { filePickTriggerLabelClass, nativeFileInputClass } from '@/lib/fileFieldStyles'
@@ -282,7 +283,7 @@ export function AdminAnnouncementsPage() {
                 <div className="flex min-w-0 gap-4">
                   {row.imagePath ? (
                     <AvatarCircleCover
-                      src={apiUrl(row.imagePath)}
+                      src={publicFileUrl(row.imagePath)}
                       sizeClass="h-20 w-20"
                       ringClassName="border border-[var(--color-border-subtle)] ring-1 ring-white/15"
                     />

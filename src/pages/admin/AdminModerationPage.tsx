@@ -86,10 +86,6 @@ type Item = {
   student: { id: string; login: string; fullName: string | null }
 }
 
-function clampPct(n: number) {
-  return Math.min(100, Math.max(0, Math.round(n)))
-}
-
 function defaultPointsForKind(
   kind: string,
   g: GradingDefaults,
@@ -171,9 +167,6 @@ export function AdminModerationPage() {
   const { token } = useAuth()
   const [items, setItems] = useState<Item[]>([])
   const [finalPtsById, setFinalPtsById] = useState<Record<string, number>>({})
-  const [gptSuggestById, setGptSuggestById] = useState<Record<string, number>>({})
-  const [assessmentById, setAssessmentById] = useState<Record<string, string>>({})
-  const [confPctById, setConfPctById] = useState<Record<string, number>>({})
   const [dirtyById, setDirtyById] = useState<Record<string, boolean>>({})
   const [metaById, setMetaById] = useState<
     Record<string, { title: string; orgName: string; note: string }>
@@ -181,9 +174,7 @@ export function AdminModerationPage() {
   const [err, setErr] = useState('')
   const [savedMsg, setSavedMsg] = useState('')
   const [loading, setLoading] = useState(true)
-  const [busyId, setBusyId] = useState<{ id: string; mode: 'save' | 'rescore' | 'confirm' } | null>(
-    null,
-  )
+  const [busySaveId, setBusySaveId] = useState<string | null>(null)
   const [gradingDefaults, setGradingDefaults] = useState<GradingDefaults>(() =>
     normGradingDefaults(null),
   )
@@ -192,8 +183,6 @@ export function AdminModerationPage() {
   const [nizomPlacement, setNizomPlacement] = useState('')
   const [gradingSaveMsg, setGradingSaveMsg] = useState('')
   const [gradingSaving, setGradingSaving] = useState(false)
-  /** Serverda OPENAI_API_KEY bor — GPT ishlagan bo‘lmasa «AI tasdiq» bloklanadi */
-  const [openaiConfigured, setOpenaiConfigured] = useState(true)
 
   const load = useCallback(async () => {
     if (!token) return
@@ -202,12 +191,24 @@ export function AdminModerationPage() {
     const res = await fetch(apiUrl('/api/admin/moderation/pending'), {
       headers: { Authorization: `Bearer ${token}` },
     })
-    const data = (await res.json()) as {
+    let data: {
       items?: Item[]
       gradingDefaults?: Partial<GradingDefaults>
       gradingRubric?: ModerationGradingRubric
-      openaiConfigured?: boolean
       error?: string
+    }
+    try {
+      data = (await res.json()) as typeof data
+    } catch {
+      setErr(
+        res.status >= 500
+          ? `Server ichki xatosi (HTTP ${res.status}); javob JSON emas.`
+          : `Server javobi notoʻgʻri (HTTP ${res.status}).`,
+      )
+      setItems([])
+      setMetaById({})
+      setLoading(false)
+      return
     }
     if (!res.ok) {
       setErr(data.error || 'Xato')
@@ -217,7 +218,6 @@ export function AdminModerationPage() {
       return
     }
     const list = data.items ?? []
-    setOpenaiConfigured(data.openaiConfigured !== false)
     const defs = normGradingDefaults(data.gradingDefaults)
     setGradingDefaults(defs)
     const snap = data.gradingRubric ?? null
@@ -238,28 +238,12 @@ export function AdminModerationPage() {
       ),
     )
 
-    const gpt: Record<string, number> = {}
     const final: Record<string, number> = {}
-    const asm: Record<string, string> = {}
-    const conf: Record<string, number> = {}
     for (const it of list) {
       const kindDefault = defaultPointsForKind(it.kind, defs, it.articleJournalTier)
-      const sug =
-        typeof it.aiSuggestedPoints === 'number' && Number.isFinite(it.aiSuggestedPoints)
-          ? clampPtsForSubmission(it.aiSuggestedPoints, it, snap, defs)
-          : kindDefault
-      gpt[it.id] = sug
-      final[it.id] = sug
-      asm[it.id] = it.aiAssessment ?? ''
-      conf[it.id] =
-        typeof it.aiScore === 'number' && Number.isFinite(it.aiScore)
-          ? clampPct(it.aiScore * 100)
-          : clampPct(62)
+      final[it.id] = kindDefault
     }
-    setGptSuggestById(gpt)
     setFinalPtsById(final)
-    setAssessmentById(asm)
-    setConfPctById(conf)
     setDirtyById(Object.fromEntries(list.map((i) => [i.id, false])))
     setLoading(false)
   }, [token])
@@ -273,11 +257,17 @@ export function AdminModerationPage() {
     setSavedMsg('')
   }
 
-  async function saveAiDraft(id: string) {
+  function applyAiSuggestedPoints(it: Item) {
+    if (it.aiSuggestedPoints == null) return
+    const clamped = clampPtsForSubmission(it.aiSuggestedPoints, it, rubricSnap, gradingDefaults)
+    setFinalPtsById((prev) => ({ ...prev, [it.id]: clamped }))
+  }
+
+  async function saveMetaDraft(id: string) {
     if (!token) return
     const it = items.find((x) => x.id === id)
     if (!it) return
-    setBusyId({ id, mode: 'save' })
+    setBusySaveId(id)
     setErr('')
     try {
       const meta = metaById[id] ?? {
@@ -292,16 +282,6 @@ export function AdminModerationPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          aiSuggestedPoints: (() => {
-            const row = items.find((x) => x.id === id)
-            if (!row) return 0
-            const sug =
-              gptSuggestById[id] ??
-              defaultPointsForKind(row.kind, gradingDefaults, row.articleJournalTier)
-            return clampPtsForSubmission(sug, row, rubricSnap, gradingDefaults)
-          })(),
-          aiAssessment: assessmentById[id] ?? '',
-          aiScore: Math.min(1, Math.max(0, (confPctById[id] ?? 0) / 100)),
           title: meta.title.trim().slice(0, 240),
           orgName: meta.orgName.trim().slice(0, 240),
           note: meta.note.trim() ? meta.note.trim().slice(0, 7900) : null,
@@ -309,81 +289,26 @@ export function AdminModerationPage() {
       })
       const d = (await res.json()) as { error?: string }
       if (!res.ok) throw new Error(d.error || 'Saqlash muvaffaqiyatsiz')
-      setSavedMsg('O‘zgarishlar saqlandi.')
+      setSavedMsg('Tahrir saqlandi.')
       setDirtyById((prev) => ({ ...prev, [id]: false }))
       await load()
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Xato')
     } finally {
-      setBusyId(null)
-    }
-  }
-
-  async function confirmAiReview(id: string) {
-    if (!token) return
-    const row = items.find((x) => x.id === id)
-    if (openaiConfigured && row && !row.aiScoreUsedOpenAi) {
-      setErr(
-        'Avval «AI qayta hisoblash» bosing — serverda GPT kaliti bor, taxminiy tavsiyani tasdiqlab boʻlmaydi.',
-      )
-      return
-    }
-    if (dirtyById[id]) {
-      setErr('Avval «Saqlash» — keyin AI tasdiqlanadi.')
-      return
-    }
-    setBusyId({ id, mode: 'confirm' })
-    setErr('')
-    try {
-      const res = await fetch(apiUrl(`/api/admin/moderation/${id}/confirm-ai-review`), {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      const d = (await res.json()) as { error?: string }
-      if (!res.ok) throw new Error(d.error || 'Tasdiqlash muvaffaqiyatsiz')
-      setSavedMsg('AI tavsiyasi moderator tomonidan tasdiqlandi — endi yakuniy ball qo‘yishingiz mumkin.')
-      await load()
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Xato')
-    } finally {
-      setBusyId(null)
-    }
-  }
-
-  async function aiRescore(id: string) {
-    if (!token) return
-    if (!window.confirm('AI yana bir bor hisoblash? Mavjud tavsiya matni almashtiriladi (saqlamasdan).'))
-      return
-    setBusyId({ id, mode: 'rescore' })
-    setErr('')
-    try {
-      const res = await fetch(apiUrl(`/api/admin/moderation/${id}/ai-rescore`), {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      const d = (await res.json()) as { error?: string }
-      if (!res.ok) throw new Error(d.error || 'Hisoblash xato')
-      setSavedMsg('AI qayta hisoblandi — joylashtirish yangilandi.')
-      await load()
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Xato')
-    } finally {
-      setBusyId(null)
+      setBusySaveId(null)
     }
   }
 
   async function approve(id: string) {
     if (!token) return
     if (dirtyById[id]) {
-      setErr('Avval AI tavsiyasi blokini «Saqlash» qiling.')
+      setErr('Avval sarlavha/tashkilot/izoh o‘zgarishlarini «Saqlash» qiling.')
       return
     }
     const row = items.find((x) => x.id === id)
     if (!row) return
     const rawPts =
-      finalPtsById[id] ??
-      gptSuggestById[id] ??
-      defaultPointsForKind(row.kind, gradingDefaults, row.articleJournalTier)
+      finalPtsById[id] ?? defaultPointsForKind(row.kind, gradingDefaults, row.articleJournalTier)
     const pts = clampPtsForSubmission(rawPts, row, rubricSnap, gradingDefaults)
     const res = await fetch(apiUrl(`/api/admin/moderation/${id}/approve`), {
       method: 'POST',
@@ -464,12 +389,10 @@ export function AdminModerationPage() {
         Baholash
       </h1>
       <p className="mb-6 max-w-2xl text-sm text-[var(--color-text-muted)] sm:text-base">
-        <strong className="text-[var(--color-text)]">1)</strong> Talaba materiallari va AI tahlili — tahrir,
-        <strong className="text-[var(--color-text)]"> «Saqlash»</strong>.{' '}
-        <strong className="text-[var(--color-text)]">2)</strong> «AI tavsiyasini tasdiqlash» (moderator roziligi).{' '}
-        <strong className="text-[var(--color-text)]">3)</strong> Yakuniy ball va «Tasdiqlash» — reytingga qo‘shiladi.
-        Tasdiqdan keyin tizim talabaga material bo‘yicha qisqa qonuniylik xulosasini shakllantiradi (GPT yoqilgan
-        bo‘lsa).
+        <strong className="text-[var(--color-text)]">1)</strong> Material va matnni tekshiring, kerak boʻlsa tahrir qiling va{' '}
+        <strong className="text-[var(--color-text)]">«Saqlash»</strong>.{' '}
+        <strong className="text-[var(--color-text)]">2)</strong> Nizom va turga mos <strong>yakuniy ball</strong> qoʻying va{' '}
+        <strong className="text-[var(--color-text)]">«Tasdiqlash»</strong> — reytingga qoʻshiladi.
         <span className="mt-2 block text-sm">
           <strong className="text-[var(--color-text)]">Rasmiy mezon:</strong>{' '}
           har bir taʼsir yoʻnalishidagi bitta tasdiqlangan material uchun maksimal <strong>10 ball</strong>; talaba umumiy
@@ -489,8 +412,8 @@ export function AdminModerationPage() {
           Nizom: boshlang‘ich ballar va yuqori cheklov
         </h2>
         <p className="mt-1 text-xs text-[var(--color-text-muted)]">
-          Bitta tasdiqlangan materiāl uchun yakuniy ball 1–{gradingDefaults.maxPointsPerSubmission} oralig‘ida. Tur
-          bo‘yicha AI tavsiyasi qoʻllanmagan boʻlsa, shu yerda turga mos tayanch ishlatiladi.
+          Bitta tasdiqlangan material uchun yakuniy ball 1–{gradingDefaults.maxPointsPerSubmission} oralig‘ida. Turga mos
+          tayanch ball pastda ko‘rsatiladi — yakuniy ballni moderator nizom asosida qoʻlda belgilaydi.
         </p>
         <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           <div>
@@ -728,7 +651,7 @@ export function AdminModerationPage() {
         </div>
         <div className="mt-4 grid gap-3 lg:grid-cols-2">
           <label className="block text-[11px] font-medium uppercase tracking-wide text-[var(--color-text-muted)]">
-            Nizom · qisqa xulosasi (talabalar va GPT uchun asos)
+            Nizom · qisqa xulosasi (talabalar uchun)
             <textarea
               rows={4}
               value={nizomSummary}
@@ -737,7 +660,7 @@ export function AdminModerationPage() {
             />
           </label>
           <label className="block text-[11px] font-medium uppercase tracking-wide text-[var(--color-text-muted)]">
-            Ichki tadbirda o‘rin / bosqich (GPT ga ko‘rsatma)
+            Ichki tadbirda o‘rin / bosqich (izoh)
             <textarea
               rows={4}
               value={nizomPlacement}
@@ -777,7 +700,7 @@ export function AdminModerationPage() {
                   <li key={key}>
                     <span className="font-medium text-[var(--color-text)]">{rubricBandLabelUz(key)}</span>{' '}
                     <span className="font-mono opacity-85">({key})</span> — tayanch{' '}
-                    <span className="tabular-nums">{kk.defaultPoints}</span>, diapazon {kk.min}…{hi} bp (AI va moderator).
+                    <span className="tabular-nums">{kk.defaultPoints}</span>, diapazon {kk.min}…{hi} bp (moderator).
                   </li>
                 )
               })}
@@ -808,7 +731,7 @@ export function AdminModerationPage() {
               key={it.id}
               className="max-w-full overflow-hidden rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-bg-card)] shadow-[0_8px_30px_-8px_rgba(0,0,0,0.35)] ring-1 ring-white/5"
             >
-              <div className="grid min-w-0 gap-0 lg:grid-cols-3 lg:divide-x lg:divide-[var(--color-border-subtle)]">
+              <div className="grid min-w-0 gap-0 lg:grid-cols-2 lg:divide-x lg:divide-[var(--color-border-subtle)]">
                 <div className="min-w-0 p-4 sm:p-5">
                   <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--color-text-muted)]">
                     Material va talaba · tizim
@@ -860,6 +783,59 @@ export function AdminModerationPage() {
                       <span className="mt-1 block break-words">{it.scientificSupervisor.trim()}</span>
                     </p>
                   ) : null}
+                  <details className="admin-mod-ai-col mt-4 rounded-xl border px-3 py-3">
+                    <summary className="cursor-pointer text-[11px] font-bold uppercase tracking-wide text-violet-200">
+                      AI yordamchi · tahlil va tavsiya
+                    </summary>
+                    <div className="mt-3 space-y-3 text-sm text-[var(--color-text-muted)]">
+                      <div className="flex flex-wrap items-center gap-2">
+                        {it.aiSuggestedPoints != null ? (
+                          <>
+                            <span>
+                              Tavsiya ball:{' '}
+                              <strong className="tabular-nums text-[var(--color-text)]">{it.aiSuggestedPoints}</strong>{' '}
+                              <span className="text-[11px]">(yakuniy maydon nizom chegarasiga qarab tuzatiladi)</span>
+                            </span>
+                            <button
+                              type="button"
+                              className="mod-ai-outline-btn rounded-lg border border-violet-500/45 bg-violet-500/10 px-2.5 py-1.5 text-[11px] font-semibold text-violet-200 transition hover:bg-violet-500/20"
+                              onClick={() => applyAiSuggestedPoints(it)}
+                            >
+                              Tavsiyani yakuniy ballga qo‘llash
+                            </button>
+                          </>
+                        ) : (
+                          <p className="text-xs">Tavsiya ball hali yo‘q.</p>
+                        )}
+                      </div>
+                      {it.aiScore != null ? (
+                        <p className="text-xs">
+                          Model ishonchi:{' '}
+                          <span className="font-semibold text-[var(--color-text)]">
+                            {Math.round(Math.min(1, Math.max(0, it.aiScore)) * 100)}%
+                          </span>
+                        </p>
+                      ) : null}
+                      <p className="text-[10px] font-semibold uppercase tracking-wide">
+                        Manba:{' '}
+                        <span className="normal-case font-semibold text-[var(--color-text)]">
+                          {it.aiScoreUsedOpenAi ? 'OpenAI API' : 'Ichki baholash'}
+                        </span>
+                      </p>
+                      {it.aiAssessment?.trim() ? (
+                        <div className="rounded-lg border border-[var(--color-border-subtle)]/80 bg-[var(--color-bg-deep)]/60 p-3">
+                          <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">
+                            Tahlil matni
+                          </p>
+                          <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-[var(--color-text)]">
+                            {it.aiAssessment.trim()}
+                          </p>
+                        </div>
+                      ) : (
+                        <p className="text-xs italic opacity-90">Tahlil matni yo‘q.</p>
+                      )}
+                    </div>
+                  </details>
                   <div className="mt-4 space-y-2">
                     <label className="block text-[11px] font-medium uppercase tracking-wide text-[var(--color-text-muted)]">
                       Moderator tuzatilgan sarlavha
@@ -919,8 +895,22 @@ export function AdminModerationPage() {
                       />
                     </label>
                   </div>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      disabled={Boolean(busySaveId)}
+                      onClick={() => void saveMetaDraft(it.id)}
+                      className="min-h-[44px] flex-1 rounded-xl bg-teal-600 px-3 py-2.5 text-sm font-semibold text-white transition hover:brightness-110 disabled:opacity-40 sm:flex-none sm:px-4"
+                    >
+                      {busySaveId === it.id
+                        ? 'Saqlanmoqda…'
+                        : dirtyById[it.id]
+                          ? 'Saqlash · o‘zgardi'
+                          : 'Saqlash'}
+                    </button>
+                  </div>
                   <a
-                    href={it.filePath}
+                    href={/^https?:\/\//i.test(it.filePath) ? it.filePath : apiUrl(it.filePath.startsWith('/') ? it.filePath : `/${it.filePath}`)}
                     target="_blank"
                     rel="noreferrer"
                     className="mt-3 inline-block text-sm font-medium text-[var(--color-accent)] hover:underline"
@@ -929,148 +919,14 @@ export function AdminModerationPage() {
                   </a>
                 </div>
 
-                <div className="admin-mod-ai-col min-w-0 border-y p-4 sm:p-5 lg:border-y-0 lg:border-l lg:border-[var(--color-border-subtle)]">
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--color-text)]">
-                    AI tavsiyasi (tahrirlanadi va saqlanadi)
-                  </p>
-                  {!it.aiScoreUsedOpenAi ? (
-                    <p className="mt-2 rounded-lg border border-amber-600/40 bg-[var(--color-bg-deep)]/80 px-3 py-2 text-xs text-[var(--color-text)] dark:border-amber-400/40 dark:bg-amber-950/30">
-                      <strong className="text-[var(--color-text)]">GPT ball tahlili hali haqiqiy emas</strong> (kalit yoʻq, xato
-                      yoki eski yuklama). OPENAI_API_KEY ni tekshirib, «AI qayta hisoblash» ni bosing — keyin moderator
-                      AI qadamini tasdiqlashi mumkin.
-                    </p>
-                  ) : null}
-                  <div className="mt-4 space-y-3">
-                    <label className="block text-xs text-[var(--color-text-muted)]">
-                      AI tavsiya balli (nizom: 1…{ptsCap})
-                      <input
-                        type="number"
-                        min={1}
-                        max={ptsCap}
-                        value={gptSuggestById[it.id] ?? basePts}
-                        onChange={(e) => {
-                          const n = Number(e.target.value)
-                          if (!Number.isFinite(n)) return
-                          setGptSuggestById((prev) => ({
-                            ...prev,
-                            [it.id]: clampPtsForSubmission(n, it, rubricSnap, gradingDefaults),
-                          }))
-                          markDirty(it.id)
-                        }}
-                        className="mt-1 w-full rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-deep)] px-2 py-1.5 text-sm text-[var(--color-text)]"
-                      />
-                    </label>
-                    <label className="block text-xs text-[var(--color-text-muted)]">
-                      Ishonch, % (model)
-                      <input
-                        type="number"
-                        min={0}
-                        max={100}
-                        value={confPctById[it.id] ?? ''}
-                        onChange={(e) => {
-                          const n = Number(e.target.value)
-                          if (!Number.isFinite(n)) return
-                          setConfPctById((prev) => ({
-                            ...prev,
-                            [it.id]: clampPct(n),
-                          }))
-                          markDirty(it.id)
-                        }}
-                        className="mt-1 w-full rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-deep)] px-2 py-1.5 text-sm text-[var(--color-text)]"
-                      />
-                    </label>
-                    <label className="block text-xs text-[var(--color-text-muted)]">
-                      Baholash matni / tahlil
-                      <textarea
-                        value={assessmentById[it.id] ?? ''}
-                        onChange={(e) => {
-                          setAssessmentById((prev) => ({ ...prev, [it.id]: e.target.value }))
-                          markDirty(it.id)
-                        }}
-                        rows={6}
-                        className="mt-1 max-h-[min(18rem,50vh)] w-full resize-y overflow-y-auto rounded-lg border border-violet-500/40 bg-[var(--color-bg-deep)] pr-10 pl-3 py-2 text-sm leading-relaxed text-[var(--color-text)] [scrollbar-color:rgba(139,92,246,0.35)_transparent] [scrollbar-width:thin] placeholder:text-[var(--color-text-muted)]"
-                      />
-                    </label>
-                  </div>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      disabled={Boolean(busyId)}
-                      onClick={() => void saveAiDraft(it.id)}
-                      className="min-h-[44px] flex-1 rounded-xl bg-teal-600 px-3 py-2.5 text-sm font-semibold text-white transition hover:brightness-110 disabled:opacity-40 sm:flex-none sm:px-4"
-                    >
-                      {busyId?.id === it.id && busyId.mode === 'save'
-                        ? 'Saqlanmoqda…'
-                        : dirtyById[it.id]
-                          ? 'Saqlash · o‘zgardi'
-                          : 'Saqlash'}
-                    </button>
-                    <button
-                      type="button"
-                      disabled={Boolean(busyId)}
-                      onClick={() => void aiRescore(it.id)}
-                      className="mod-ai-outline-btn min-h-[44px] flex-1 rounded-xl border-2 border-violet-500/50 bg-violet-900/20 px-3 py-2.5 text-sm font-semibold text-violet-200 transition hover:border-violet-400 hover:bg-violet-500/15 disabled:cursor-not-allowed disabled:border-[var(--color-border-subtle)] disabled:bg-transparent disabled:opacity-45 disabled:text-[var(--color-text-muted)] sm:flex-none sm:px-4"
-                    >
-                      {busyId?.id === it.id && busyId.mode === 'rescore'
-                        ? 'Hisoblanmoqda…'
-                        : 'AI qayta hisoblash'}
-                    </button>
-                  </div>
-                  <div className="mt-6 border-t border-[var(--color-border-subtle)] pt-4">
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--color-text)]">
-                      2 · AI tavsiyasini tasdiqlash
-                    </p>
-                    {it.adminAiReviewConfirmedAt ? (
-                      <p className="mt-2 text-xs font-medium text-teal-300">
-                        Moderator tasdiqi:{' '}
-                        {new Date(it.adminAiReviewConfirmedAt).toLocaleString('uz-UZ', { hour12: false })}
-                      </p>
-                    ) : (
-                      <p className="mt-2 text-xs text-[var(--color-text-muted)]">
-                        Avval yuqoridagi o‘zgarishlarni «Saqlash», so‘ng bu tugmani bosing. AI qayta hisoblangan bo‘lsa,
-                        qayta tasdiqlash kerak.
-                        {openaiConfigured && !it.aiScoreUsedOpenAi ? (
-                          <span className="mt-1 block font-medium text-amber-200/90">
-                            Serverda GPT kaliti yoqilgan — tasdiqlash uchun avval «AI qayta hisoblash» orqali haqiqiy
-                            GPT tahlilini oling.
-                          </span>
-                        ) : null}
-                      </p>
-                    )}
-                    <button
-                      type="button"
-                      disabled={
-                        Boolean(busyId) ||
-                        Boolean(dirtyById[it.id]) ||
-                        Boolean(it.adminAiReviewConfirmedAt) ||
-                        (openaiConfigured && !it.aiScoreUsedOpenAi)
-                      }
-                      onClick={() => void confirmAiReview(it.id)}
-                      className="mt-3 w-full min-h-[44px] rounded-xl bg-violet-600 px-3 py-2.5 text-sm font-semibold text-white shadow-md shadow-violet-950/40 transition hover:bg-violet-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-400 disabled:cursor-not-allowed disabled:bg-slate-600/80 disabled:text-white/90 disabled:shadow-none"
-                    >
-                      {busyId?.id === it.id && busyId.mode === 'confirm'
-                        ? 'Tasdiqlanmoqda…'
-                        : it.adminAiReviewConfirmedAt
-                          ? 'Tasdiqlangan ✓'
-                          : it.aiScoreUsedOpenAi === false
-                            ? 'AI tavsiyasini tasdiqlash (avval GPT hisoblash)'
-                            : 'AI tavsiyasini tasdiqlayman'}
-                    </button>
-                  </div>
-                </div>
-
                 <div className="admin-mod-final-col flex min-w-0 flex-col justify-between gap-4 border-t border-[var(--color-border-subtle)] p-4 sm:border-t-0 sm:p-5 lg:border-l lg:border-t-0">
                   <div>
                     <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--color-text-muted)]">
-                      Admin yakuniy balli
+                      Yakuniy ball (nizom asosida)
                     </p>
                     <p className="mt-2 text-xs text-[var(--color-text-muted)]">
-                      Reytingga qoʻshiladi. Bosqichlar: saqlangan AI → moderator tasdiqi (orta ustun) → yakuniy ball.
-                      {!(dirtyById[it.id] ?? false) && it.adminAiReviewConfirmedAt
-                        ? ' Tayyor — tasdiqlash mumkin.'
-                        : !(dirtyById[it.id] ?? false) && !it.adminAiReviewConfirmedAt
-                          ? ' Avval AI tavsiyasini tasdiqlang.'
-                          : ' Avval «Saqlash».'}
+                      Reytingga qoʻshiladigan ball. Avval matn tahririni «Saqlash», keyin ball qoʻyib «Tasdiqlash».
+                      {dirtyById[it.id] ? ' Hozir saqlanmagan o‘zgarishlar bor.' : ''}
                     </p>
                   </div>
                   <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
@@ -1080,7 +936,7 @@ export function AdminModerationPage() {
                         type="number"
                         min={1}
                         max={ptsCap}
-                        value={finalPtsById[it.id] ?? gptSuggestById[it.id] ?? basePts}
+                        value={finalPtsById[it.id] ?? basePts}
                         onChange={(e) => {
                           const n = Number(e.target.value)
                           if (!Number.isFinite(n)) return
@@ -1098,17 +954,17 @@ export function AdminModerationPage() {
                       onClick={() => {
                         setFinalPtsById((prev) => ({
                           ...prev,
-                          [it.id]: gptSuggestById[it.id] ?? basePts,
+                          [it.id]: basePts,
                         }))
                       }}
                     >
-                      AI tavsiyasiga moslash
+                      Tayanch ballga qaytarish
                     </button>
                   </div>
                   <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                     <button
                       type="button"
-                      disabled={Boolean(dirtyById[it.id]) || !it.adminAiReviewConfirmedAt}
+                      disabled={Boolean(dirtyById[it.id])}
                       onClick={() => void approve(it.id)}
                       className="min-h-[44px] w-full rounded-xl bg-teal-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-teal-950/30 transition hover:bg-teal-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-400 disabled:cursor-not-allowed disabled:bg-slate-500 disabled:shadow-none sm:w-auto"
                     >

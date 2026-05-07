@@ -87,14 +87,14 @@ export function StudentDashboardPage() {
 
   return (
     <div className="space-y-10">
-      <div className="relative overflow-hidden rounded-[2rem] border border-[var(--color-border-subtle)] bg-gradient-to-br from-[var(--color-bg-card)] via-[var(--color-bg-deep)] to-[var(--color-bg-card)] p-8 shadow-2xl sm:p-10">
+      <div className="relative overflow-hidden rounded-[2rem] border border-[var(--color-border-subtle)] bg-gradient-to-br from-[var(--color-bg-card)] via-[var(--color-bg-deep)] to-[var(--color-bg-card)] p-5 shadow-2xl sm:p-10">
         <div className="pointer-events-none absolute -right-20 top-0 h-56 w-56 rounded-full bg-teal-500/12 blur-3xl" />
         <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-5">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-700 text-lg font-bold text-white shadow-lg">
+          <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-center sm:gap-5">
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-700 text-lg font-bold text-white shadow-lg">
               {initialsFromName(user?.fullName)}
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-sm font-medium text-[var(--color-text-muted)]">Salom,</p>
               <h1 className="font-display text-2xl font-bold text-[var(--color-text)] sm:text-3xl">
                 {user?.fullName || user?.login}
@@ -104,7 +104,7 @@ export function StudentDashboardPage() {
               </p>
             </div>
           </div>
-          <div className="rounded-2xl border border-teal-500/25 bg-teal-500/10 px-5 py-4 text-center ring-1 ring-teal-500/20">
+          <div className="w-full shrink-0 rounded-2xl border border-teal-500/25 bg-teal-500/10 px-5 py-4 text-center ring-1 ring-teal-500/20 sm:w-auto">
             <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-accent-strong)]">
               Jami ball
             </p>
@@ -138,7 +138,7 @@ export function StudentDashboardPage() {
         </div>
       ) : null}
 
-      <section className="rounded-[1.5rem] border border-[var(--color-border-subtle)] bg-[var(--color-bg-card)]/90 p-6 shadow-lg backdrop-blur sm:p-8">
+      <section className="rounded-[1.5rem] border border-[var(--color-border-subtle)] bg-[var(--color-bg-card)]/90 p-5 shadow-lg backdrop-blur sm:p-8">
         <h2 className="font-display text-lg font-semibold text-[var(--color-text)]">
           Mening materiallarim va baholar
         </h2>
@@ -218,8 +218,8 @@ export function StudentDashboardPage() {
                     </dl>
                     {r.status === 'PENDING' ? (
                       <p className="rounded-lg border border-slate-500/30 bg-slate-500/10 px-3 py-2 text-xs text-[var(--color-text-muted)]">
-                        Ochiq sayt va umumiy reytingda bu material moderator tasdiqlaguncha chiqmaydi. Administrator
-                        bildirishnomasi va AI tahlilidan keyin yakuniy ball beriladi.
+                        Ochiq sayt va umumiy reytingda bu material moderator tasdiqlaguncha chiqmaydi. Yakuniy ballni moderator
+                        belgilaydi.
                       </p>
                     ) : null}
                     {r.scientificSupervisor?.trim() ? (
@@ -260,25 +260,6 @@ export function StudentDashboardPage() {
                         Yuklangan faylni ochish (PDF yoki rasm)
                       </a>
                     </div>
-                    {r.aiAssessment?.trim() ? (
-                      <div className="rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-deep)]/55 px-3 py-2">
-                        <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">
-                          AI tahlil (tavsiya)
-                        </p>
-                        <p className="mt-1 whitespace-pre-wrap text-xs leading-relaxed text-[var(--color-text-muted)]">
-                          {r.aiAssessment.trim()}
-                        </p>
-                        {r.aiSuggestedPoints != null ? (
-                          <p className="mt-2 text-[11px] text-[var(--color-text)]">
-                            AI tavsiya balli: {r.aiSuggestedPoints}
-                            {r.aiScore != null
-                              ? ` · ishonch (model): ${Math.round(Math.min(1, Math.max(0, r.aiScore)) * 100)}%`
-                              : ''}
-                            {!r.aiScoreUsedOpenAi ? ' · (taxminiy — serverda GPT toʻliq ishlamagan boʻlishi mumkin)' : ''}
-                          </p>
-                        ) : null}
-                      </div>
-                    ) : null}
                     {r.status === 'REJECTED' && r.adminNote?.trim() ? (
                       <div className="rounded-xl border border-red-500/35 bg-red-500/10 px-3 py-2 text-sm">
                         <p className="text-[11px] font-semibold uppercase text-[var(--color-text)]">
@@ -289,7 +270,7 @@ export function StudentDashboardPage() {
                     ) : null}
                   </div>
                   {showScore ? (
-                    <div className="mt-3 text-sm tabular-nums">
+                    <div className="mt-3 flex flex-col gap-1 text-sm tabular-nums sm:flex-row sm:flex-wrap sm:items-baseline sm:gap-x-1">
                       <span className="text-[var(--color-text)]">
                         Sizning ballingiz:{' '}
                         <strong className="text-[var(--color-accent-strong)]">{r.points}</strong>
@@ -300,7 +281,7 @@ export function StudentDashboardPage() {
                       </span>
                       {!r.appeals.length ? (
                         r.belowStandard ? (
-                          <span className="ml-1 text-[var(--color-text)]">· standartdan past</span>
+                          <span className="text-[var(--color-text)] sm:ml-1">· standartdan past</span>
                         ) : null
                       ) : null}
                     </div>
@@ -308,7 +289,7 @@ export function StudentDashboardPage() {
                   {showScore ? (
                     <div className="mt-3 rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-bg-card)]/50 px-3 py-3">
                       <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">
-                        AI qonuniylik xulosasi (metadata asosida)
+                        Tekshiruv badge (maydonlar bo‘yicha)
                       </p>
                       {(() => {
                         const lb = submissionLegitBadge(r.aiLegitimacyVerdict)
@@ -326,8 +307,8 @@ export function StudentDashboardPage() {
                         </p>
                       ) : (
                         <p className="mt-2 text-xs text-[var(--color-text-muted)]">
-                          Xulosa tayyorlanmoqda — bir ozdan keyin sahifani yangilang. Bu avtomatik qadam; hujjat mazmuni
-                          ochilmaydi.
+                          Xulosa tayyorlanmoqda — bir ozdan keyin sahifani yangilang (sarlavha va boshqa maydonlar ustida qisqa
+                          tekshiruv).
                         </p>
                       )}
                     </div>

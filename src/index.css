@@ -121,6 +121,31 @@
     color: #6d28d9;
   }
 
+  /** Admin kabineti / panel — ochiq rejimda teal/yashil yozuvlar */
+  html.light .admin-app .text-teal-300 {
+    color: #0f766e;
+  }
+
+  html.light .admin-app .text-teal-400 {
+    color: #0d9488;
+  }
+
+  html.light .admin-app .text-emerald-200 {
+    color: #047857;
+  }
+
+  html.light .admin-app .text-amber-200 {
+    color: #b45309;
+  }
+
+  html.light .admin-app .text-rose-200 {
+    color: #be123c;
+  }
+
+  html.light .admin-app .text-red-300 {
+    color: #b91c1c;
+  }
+
   /** Moderatsiya sahifasi: tugmalar va AI bloki kontrasti (dark + light) */
   .admin-mod-ai-col {
     background: rgba(46, 16, 101, 0.32);

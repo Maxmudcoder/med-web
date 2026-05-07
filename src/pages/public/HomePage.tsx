@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { apiUrl, fetchPublicJson } from '@/lib/api'
+import { fetchPublicJson } from '@/lib/api'
+import { DEFAULT_PUBLIC_BRANDING, type PublicBranding, type PublicHomeCopy } from '@/lib/publicBranding'
+import { publicFileUrl } from '@/lib/stickerSrc'
 import { RankBadge, PromoAccent, type AnnouncementItem, type RankingItem } from '@/pages/public/publicUi'
 import { RankingDetailModal } from '@/pages/public/RankingDetailModal'
 
@@ -19,6 +21,22 @@ export function HomePage() {
   const [announcementsRaw, setAnnouncementsRaw] = useState<AnnouncementItem[]>([])
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
+  const [homeCopy, setHomeCopy] = useState<PublicHomeCopy>(DEFAULT_PUBLIC_BRANDING.home)
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const data = await fetchPublicJson<PublicBranding>('/api/public/branding')
+        if (!cancelled) setHomeCopy(data.home)
+      } catch {
+        /* default */
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -63,38 +81,35 @@ export function HomePage() {
             <div className="mb-8 max-w-3xl font-display">
               <div className="inline-block max-w-full rounded-2xl border border-teal-500/20 bg-white/45 px-4 py-3 backdrop-blur-md dark:border-teal-400/[0.18] dark:bg-[var(--color-bg-deep)]/45 sm:px-5 sm:py-4">
                 <p className="break-words text-[clamp(1.0625rem,4.75vw,2.75rem)] font-extrabold leading-snug tracking-tight text-emerald-600/92 dark:text-teal-300/92 antialiased">
-                  Toshkent davlat tibbiyot universiteti Termiz filiali
+                  {homeCopy.institutionTitle}
                 </p>
               </div>
             </div>
             <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-teal-500/35 bg-teal-500/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-teal-300">
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
-              Tibbiyot kadrlari · yutuqlar reytingi
+              {homeCopy.badge}
             </div>
             <h1 className="font-display text-3xl font-extrabold leading-[1.15] tracking-tight sm:text-5xl lg:text-[3.25rem]">
-              <span className="text-gradient">Tibbiyot kadrlar</span>{' '}
-              <span className="text-[var(--color-text)]">uchun</span>
+              <span className="text-gradient">{homeCopy.heroHighlight}</span>{' '}
+              <span className="text-[var(--color-text)]">{homeCopy.heroMid}</span>
               <br />
-              <span className="text-[var(--color-text)]">reyting va sertifikat platformasi</span>
+              <span className="text-[var(--color-text)]">{homeCopy.heroSubtitle}</span>
             </h1>
-            <p className="mt-6 max-w-xl text-base leading-relaxed text-[var(--color-text-muted)] sm:text-lg">
-              Reyting 10 ta taʼsir yoʻnalishi boʻyicha: har bir yoʻnalishda bitta tasdiqlangan material uchun{' '}
-              <span className="font-semibold text-[var(--color-text)]">maksimal 10 ball</span>, jami teorik cheklov{' '}
-              <span className="font-semibold text-[var(--color-text)]">100 ball</span>. Yakuniy ball va nizom moderator
-              zimmasida.
+            <p className="mt-6 max-w-xl whitespace-pre-line text-base leading-relaxed text-[var(--color-text-muted)] sm:text-lg">
+              {homeCopy.introText}
             </p>
             <div className="mt-8 flex flex-col gap-3 min-[400px]:flex-row min-[400px]:flex-wrap sm:mt-10 sm:gap-4">
               <Link
                 to="/kirish"
                 className="inline-flex w-full min-[400px]:w-auto items-center justify-center rounded-2xl bg-gradient-to-r from-teal-500 to-teal-600 px-6 py-3.5 text-sm font-semibold text-white shadow-xl shadow-teal-500/35 transition hover:brightness-110 active:scale-[0.98] sm:px-8 sm:py-4 sm:text-base"
               >
-                Tizimga kirish
+                {homeCopy.ctaPrimary}
               </Link>
               <Link
                 to="/reyting"
                 className="inline-flex w-full min-[400px]:w-auto items-center justify-center rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-bg-card)]/80 px-6 py-3.5 text-sm font-semibold text-[var(--color-text)] backdrop-blur transition hover:border-teal-500/50 hover:text-teal-300 sm:px-8 sm:py-4 sm:text-base"
               >
-                Reytingni ko‘rish
+                {homeCopy.ctaSecondary}
               </Link>
             </div>
             {err ? (
@@ -110,10 +125,10 @@ export function HomePage() {
               <div className="absolute -bottom-8 -left-8 h-28 w-28 rounded-full bg-gradient-to-br from-teal-400 to-emerald-600 opacity-35 blur-2xl" />
 
               <p className="font-display text-sm font-semibold uppercase tracking-widest text-teal-400">
-                Reyting va yutuqlar
+                {homeCopy.rankingCardKicker}
               </p>
               <p className="mt-2 font-display text-2xl font-bold text-[var(--color-text)] sm:text-3xl">
-                Reyting yetakchilari
+                {homeCopy.rankingCardTitle}
               </p>
               <p className="mt-1 text-sm text-[var(--color-text-muted)]">
                 To‘liq jadval:{' '}
@@ -161,7 +176,7 @@ export function HomePage() {
                 </ul>
               )}
               <div className="mt-6 flex items-center justify-between rounded-xl bg-emerald-500/10 px-4 py-3 text-xs text-emerald-300 ring-1 ring-emerald-500/25">
-                <span>Yutuq / sertifikat qatori ustiga bosib batafsil</span>
+                <span>{homeCopy.rankingCardHint}</span>
                 <Link to="/reyting" className="font-semibold text-teal-300 hover:text-teal-200">
                   Barchasi →
                 </Link>
@@ -203,7 +218,7 @@ export function HomePage() {
                 >
                   {p.imagePath ? (
                     <img
-                      src={apiUrl(p.imagePath)}
+                      src={publicFileUrl(p.imagePath)}
                       alt=""
                       className="absolute inset-0 h-full w-full object-cover"
                     />

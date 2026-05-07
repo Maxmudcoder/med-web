@@ -301,17 +301,17 @@ export function AdminStudentsPage() {
       </form>
 
       <div className="overflow-hidden rounded-[1.5rem] border border-[var(--color-border-subtle)] bg-[var(--color-bg-card)]/90 shadow-xl backdrop-blur">
-        <div className="border-b border-[var(--color-border-subtle)] px-6 py-4">
+        <div className="border-b border-[var(--color-border-subtle)] px-4 py-4 sm:px-6">
           <h2 className="font-display font-bold text-[var(--color-text)]">Ro‘yxat</h2>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px] text-left text-sm">
+        <div className="hidden md:block md:overflow-x-auto">
+          <table className="w-full min-w-[560px] text-left text-sm">
             <thead>
               <tr className="border-b border-[var(--color-border-subtle)] text-[var(--color-text-muted)]">
-                <th className="px-6 py-3 font-semibold">Talaba</th>
-                <th className="px-6 py-3 font-semibold">Login</th>
-                <th className="px-6 py-3 font-semibold">Ball</th>
-                <th className="px-6 py-3 font-semibold text-right">Harakat</th>
+                <th className="px-4 py-3 font-semibold sm:px-6">Talaba</th>
+                <th className="px-4 py-3 font-semibold sm:px-6">Login</th>
+                <th className="px-4 py-3 font-semibold sm:px-6">Ball</th>
+                <th className="px-4 py-3 text-right font-semibold sm:px-6">Harakat</th>
               </tr>
             </thead>
             <tbody>
@@ -380,6 +380,75 @@ export function AdminStudentsPage() {
               )}
             </tbody>
           </table>
+        </div>
+
+        <div className="md:hidden space-y-3 p-4">
+          {loading ? (
+            <p className="py-8 text-center text-sm text-[var(--color-text-muted)]">Yuklanmoqda…</p>
+          ) : items.length === 0 ? (
+            <p className="py-8 text-center text-sm text-[var(--color-text-muted)]">Talaba yo‘q</p>
+          ) : (
+            items.map((u) => (
+              <article
+                key={`m-${u.id}`}
+                className="rounded-2xl border border-[var(--color-border-subtle)]/80 bg-[var(--color-bg-deep)]/35 p-4"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold leading-snug text-[var(--color-text)]">{u.fullName ?? '—'}</p>
+                    {u.groupName ? (
+                      <p className="mt-1 text-xs text-[var(--color-text-muted)]">{u.groupName}</p>
+                    ) : null}
+                    <p className="mt-1 break-all font-mono text-xs text-[var(--color-text-muted)]">{u.login}</p>
+                    {u.blocked ? (
+                      <p className="mt-2 inline-flex rounded-lg bg-red-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-red-300 ring-1 ring-red-500/35">
+                        Bloklangan
+                      </p>
+                    ) : null}
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <p className="tabular-nums text-xl font-bold text-teal-400">{u.totalPoints}</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">
+                      ball
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                  <Link
+                    to={`/admin/talabalar/${encodeURIComponent(u.id)}/profil`}
+                    className="flex min-h-[2.75rem] items-center justify-center rounded-xl border border-emerald-500/45 bg-emerald-500/10 px-2 py-2 text-center text-xs font-semibold text-emerald-200"
+                  >
+                    Kabinet
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => openEdit(u)}
+                    className="flex min-h-[2.75rem] items-center justify-center rounded-xl border border-teal-500/40 bg-teal-500/10 px-2 py-2 text-xs font-semibold text-teal-200"
+                  >
+                    Tahrirlash
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => openDelete(u)}
+                    className="flex min-h-[2.75rem] items-center justify-center rounded-xl border border-rose-500/40 bg-rose-500/10 px-2 py-2 text-xs font-semibold text-rose-200"
+                  >
+                    O‘chirish
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void toggleBlock(u.id, u.blocked)}
+                    className={`flex min-h-[2.75rem] items-center justify-center rounded-xl px-2 py-2 text-xs font-semibold ${
+                      u.blocked
+                        ? 'bg-emerald-500/15 text-emerald-400 ring-1 ring-emerald-500/35'
+                        : 'bg-red-500/15 text-red-300 ring-1 ring-red-500/35'
+                    }`}
+                  >
+                    {u.blocked ? 'Blokdan chiqarish' : 'Bloklash'}
+                  </button>
+                </div>
+              </article>
+            ))
+          )}
         </div>
       </div>
 
