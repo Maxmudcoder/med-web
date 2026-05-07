@@ -86,3 +86,29 @@ export async function fetchAuthForm<T>(
   if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`)
   return data as T
 }
+
+/** www va apex bir xil sayt deb hisoblanadi (frontend-only domenlarda /api Node ga bormaydi). */
+function hostWithoutWww(host: string): string {
+  return host.startsWith('www.') ? host.slice(4) : host
+}
+
+/** Productionda VITE_API_URL sayt bilan bir xil bazaviy host bo‘lsa — so‘rovlar statik hostingga ketadi (CORS / redirect). */
+function warnIfApiHostEqualsPageHost() {
+  if (!import.meta.env.PROD || typeof window === 'undefined') return
+  const raw = import.meta.env.VITE_API_URL?.trim()
+  if (!raw) return
+  try {
+    const apiHost = new URL(raw).hostname
+    const pageHost = window.location.hostname
+    if (hostWithoutWww(apiHost) === hostWithoutWww(pageHost)) {
+      console.warn(
+        '[api] VITE_API_URL hozirgi sayt domeni bilan bir xil (www/apex farqi hisobga olinmadi). ' +
+          'API alohida hostda bo‘lishi kerak (odatda api. domen orqali, masalan https://api.example.com).',
+      )
+    }
+  } catch {
+    /* VITE_API_URL noto‘g‘ri URL */
+  }
+}
+
+warnIfApiHostEqualsPageHost()
