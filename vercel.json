@@ -1,0 +1,15 @@
+{
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://vercel.live https://va.vercel-scripts.com https://*.vercel-scripts.com; style-src 'self' 'unsafe-inline'; font-src 'self' data: https://fonts.gstatic.com https://*.gstatic.com https://*.vercel.com https://vercel.live https://*.public.blob.vercel-storage.com; img-src 'self' data: blob: https:; connect-src 'self' https: wss:; frame-src 'self' https://vercel.live; worker-src 'self' blob:; manifest-src 'self'; upgrade-insecure-requests"
+        }
+      ]
+    }
+  ]
+}
+

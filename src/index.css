@@ -1,8 +1,9 @@
 @import 'tailwindcss';
 
 @theme {
-  --font-sans: 'Inter', system-ui, sans-serif;
-  --font-display: 'Outfit', 'Inter', system-ui, sans-serif;
+  /* @fontsource-variable — bitta origin, tashqi Google Fonts / CSP muammosiz */
+  --font-sans: 'Inter Variable', 'Inter', system-ui, sans-serif;
+  --font-display: 'Outfit Variable', 'Outfit', 'Inter Variable', system-ui, sans-serif;
 
   --color-bg-deep: #06120f;
   --color-bg-card: #0c1916;
