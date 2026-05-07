@@ -1,4 +1,11 @@
-/** Bo‘sh = bir xil origin (Vite proxy). Kerak bo‘lsa build vaqtida `VITE_API_URL=http://localhost:4000` */
+/**
+ * API uchun to‘liq URL: `import.meta.env.VITE_API_URL` (build vaqtida beriladi).
+ *
+ * - Dev: odatda bo‘sh — yo‘llar `/api/...` ko‘rinishida qoladi, `vite.config` proksi backendga yo‘naltiradi.
+ * - Production: masalan Vercel da `VITE_API_URL=https://api.med-iqtidor.uz` — barcha so‘rovlar shu hostga ketadi.
+ *
+ * Namuna: `fetch(apiUrl('/api/health'))` yoki `fetchAuthJson('/api/auth/me', token)` — ikkalasi ham `apiUrl` orqali.
+ */
 export function apiUrl(path: string): string {
   const base = import.meta.env.VITE_API_URL?.trim().replace(/\/$/, '') ?? ''
   const p = path.startsWith('/') ? path : `/${path}`
