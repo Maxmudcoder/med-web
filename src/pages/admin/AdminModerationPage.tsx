@@ -192,6 +192,8 @@ export function AdminModerationPage() {
   const [nizomPlacement, setNizomPlacement] = useState('')
   const [gradingSaveMsg, setGradingSaveMsg] = useState('')
   const [gradingSaving, setGradingSaving] = useState(false)
+  /** Serverda OPENAI_API_KEY bor — GPT ishlagan bo‘lmasa «AI tasdiq» bloklanadi */
+  const [openaiConfigured, setOpenaiConfigured] = useState(true)
 
   const load = useCallback(async () => {
     if (!token) return
@@ -204,6 +206,7 @@ export function AdminModerationPage() {
       items?: Item[]
       gradingDefaults?: Partial<GradingDefaults>
       gradingRubric?: ModerationGradingRubric
+      openaiConfigured?: boolean
       error?: string
     }
     if (!res.ok) {
@@ -214,6 +217,7 @@ export function AdminModerationPage() {
       return
     }
     const list = data.items ?? []
+    setOpenaiConfigured(data.openaiConfigured !== false)
     const defs = normGradingDefaults(data.gradingDefaults)
     setGradingDefaults(defs)
     const snap = data.gradingRubric ?? null
@@ -317,6 +321,13 @@ export function AdminModerationPage() {
 
   async function confirmAiReview(id: string) {
     if (!token) return
+    const row = items.find((x) => x.id === id)
+    if (openaiConfigured && row && !row.aiScoreUsedOpenAi) {
+      setErr(
+        'Avval «AI qayta hisoblash» bosing — serverda GPT kaliti bor, taxminiy tavsiyani tasdiqlab boʻlmaydi.',
+      )
+      return
+    }
     if (dirtyById[id]) {
       setErr('Avval «Saqlash» — keyin AI tasdiqlanadi.')
       return
@@ -1018,6 +1029,12 @@ export function AdminModerationPage() {
                       <p className="mt-2 text-xs text-[var(--color-text-muted)]">
                         Avval yuqoridagi o‘zgarishlarni «Saqlash», so‘ng bu tugmani bosing. AI qayta hisoblangan bo‘lsa,
                         qayta tasdiqlash kerak.
+                        {openaiConfigured && !it.aiScoreUsedOpenAi ? (
+                          <span className="mt-1 block font-medium text-amber-200/90">
+                            Serverda GPT kaliti yoqilgan — tasdiqlash uchun avval «AI qayta hisoblash» orqali haqiqiy
+                            GPT tahlilini oling.
+                          </span>
+                        ) : null}
                       </p>
                     )}
                     <button
@@ -1025,7 +1042,8 @@ export function AdminModerationPage() {
                       disabled={
                         Boolean(busyId) ||
                         Boolean(dirtyById[it.id]) ||
-                        Boolean(it.adminAiReviewConfirmedAt)
+                        Boolean(it.adminAiReviewConfirmedAt) ||
+                        (openaiConfigured && !it.aiScoreUsedOpenAi)
                       }
                       onClick={() => void confirmAiReview(it.id)}
                       className="mt-3 w-full min-h-[44px] rounded-xl bg-violet-600 px-3 py-2.5 text-sm font-semibold text-white shadow-md shadow-violet-950/40 transition hover:bg-violet-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-400 disabled:cursor-not-allowed disabled:bg-slate-600/80 disabled:text-white/90 disabled:shadow-none"
